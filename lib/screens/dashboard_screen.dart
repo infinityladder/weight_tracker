@@ -1,0 +1,510 @@
+import 'dart:math' as math;
+
+import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+
+import '../state.dart';
+import '../theme.dart';
+import '../widgets.dart';
+import 'goal_sheet.dart';
+
+class DashboardScreen extends ConsumerWidget {
+  const DashboardScreen({super.key, required this.onLog});
+
+  final VoidCallback onLog;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final data = ref.watch(appProvider);
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+      children: [
+        _Scoreboard(data: data, onLog: onLog),
+        _TodaysNotes(data: data),
+        const SizedBox(height: 16),
+        _GoalCard(data: data),
+        const SizedBox(height: 16),
+        _TrendCard(data: data),
+      ],
+    );
+  }
+}
+
+class _Scoreboard extends StatelessWidget {
+  const _Scoreboard({required this.data, required this.onLog});
+
+  final AppData data;
+  final VoidCallback onLog;
+
+  @override
+  Widget build(BuildContext context) {
+    final u = data.units;
+    final latest = data.latestMorning;
+    final first = data.firstMorning;
+    final white70 = Colors.white.withValues(alpha: 0.8);
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: brandGradient,
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(color: brandOrange.withValues(alpha: 0.25), blurRadius: 18, offset: const Offset(0, 6)),
+        ],
+      ),
+      padding: const EdgeInsets.fromLTRB(22, 18, 22, 20),
+      child: latest == null
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('MORNING WEIGHT', style: label(context, color: white70)),
+                const SizedBox(height: 14),
+                Text('NO WEIGH-IN YET', style: display(44, color: Colors.white)),
+                const SizedBox(height: 6),
+                Text('Log a morning weight to start your scoreboard.',
+                    style: TextStyle(color: white70, fontSize: 15)),
+                const SizedBox(height: 14),
+                OutlinedButton.icon(
+                  onPressed: onLog,
+                  icon: const Icon(Icons.add),
+                  label: const Text('LOG NOW'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: const BorderSide(color: Colors.white, width: 2),
+                    textStyle: display(18, weight: FontWeight.w800),
+                  ),
+                ),
+              ],
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(child: Text('MORNING WEIGHT', style: label(context, color: white70))),
+                    Text(DateFormat('EEE d MMM').format(latest.date).toUpperCase(),
+                        style: label(context, color: white70)),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(u.fmtWeight(latest.weightKg!),
+                        style: display(108, color: Colors.white, spacing: -2)),
+                    const SizedBox(width: 6),
+                    Text(u.weight.toUpperCase(), style: display(30, color: white70)),
+                  ],
+                ),
+                if (first != null && first.id != latest.id) ...[
+                  const SizedBox(height: 4),
+                  _ChangePill(
+                    deltaKg: latest.weightKg! - first.weightKg!,
+                    since: first.date,
+                    unitsText: (kg) => '${u.fmtWeight(kg.abs())} ${u.weight}',
+                  ),
+                ],
+                const SizedBox(height: 14),
+                TapeMeasure(
+                  values: [for (final e in data.morningWeights) u.weightOut(e.weightKg!)],
+                  latest: u.weightOut(latest.weightKg!),
+                ),
+              ],
+            ),
+    );
+  }
+}
+
+class _ChangePill extends StatelessWidget {
+  const _ChangePill({required this.deltaKg, required this.since, required this.unitsText});
+
+  final double deltaKg;
+  final DateTime since;
+  final String Function(double) unitsText;
+
+  @override
+  Widget build(BuildContext context) {
+    final down = deltaKg < 0;
+    final flat = deltaKg.abs() < 0.05;
+    final color = flat ? Colors.black54 : (down ? goodGreen : badRed);
+    final icon = flat ? Icons.remove : (down ? Icons.arrow_downward : Icons.arrow_upward);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18, color: color),
+          const SizedBox(width: 4),
+          Text(unitsText(deltaKg), style: display(19, color: color)),
+          Text('  since ${DateFormat('d MMM yyyy').format(since)}',
+              style: const TextStyle(color: Colors.black54, fontSize: 13, fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
+  }
+}
+
+class _TodaysNotes extends StatelessWidget {
+  const _TodaysNotes({required this.data});
+
+  final AppData data;
+
+  @override
+  Widget build(BuildContext context) {
+    final notes = data.notesFor(DateTime.now());
+    if (notes.isEmpty) return const SizedBox.shrink();
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(6, 12, 6, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("TODAY'S NOTES", style: label(context)),
+          const SizedBox(height: 4),
+          Text(
+            [for (final n in notes) '${n.slot.label} ${data.units.fmtWeight(n.weightKg!)} ${data.units.weight}']
+                .join('   ·   '),
+            style: TextStyle(color: muted, fontWeight: FontWeight.w600),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GoalCard extends StatelessWidget {
+  const _GoalCard({required this.data});
+
+  final AppData data;
+
+  @override
+  Widget build(BuildContext context) {
+    final u = data.units;
+    final goal = data.goal;
+    final progress = data.progress(DateTime.now());
+
+    if (goal == null) {
+      return SportCard(
+        title: 'Goal',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              data.latestMorning == null
+                  ? 'Log a morning weight first, then set a target.'
+                  : 'Set a target weight and date to track your progress.',
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: data.latestMorning == null ? null : () => showGoalSheet(context),
+              icon: const Icon(Icons.flag),
+              label: const Text('SET GOAL'),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(50),
+                side: const BorderSide(color: brandOrange, width: 2),
+                textStyle: display(20, weight: FontWeight.w800),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    String sign(double kg) => kg < 0 ? '−' : '+';
+    return SportCard(
+      title: 'Goal',
+      trailing: IconButton(
+        visualDensity: VisualDensity.compact,
+        tooltip: 'Edit goal',
+        icon: const Icon(Icons.edit),
+        onPressed: () => showGoalSheet(context),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(u.fmtWeight(goal.targetWeightKg), style: display(52)),
+              const SizedBox(width: 4),
+              Text(u.weight.toUpperCase(), style: display(22, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+              const Spacer(),
+              Text('BY ${DateFormat('d MMM yyyy').format(goal.targetDate).toUpperCase()}',
+                  style: label(context)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (progress != null && progress.reached)
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(gradient: brandGradient, borderRadius: BorderRadius.circular(14)),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.emoji_events, color: Colors.white, size: 28),
+                  const SizedBox(width: 8),
+                  Text('GOAL REACHED', style: display(28, color: Colors.white)),
+                ],
+              ),
+            )
+          else if (progress != null) ...[
+            StripedProgressBar(value: progress.fraction),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Text('${u.fmtWeight(goal.startWeightKg)} ${u.weight}', style: label(context)),
+                const Spacer(),
+                Text('${u.fmtWeight(goal.targetWeightKg)} ${u.weight}', style: label(context)),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                _Stat(value: '${(progress.fraction * 100).round()}%', caption: 'complete'),
+                _Stat(value: u.fmtWeight(progress.leftKg), caption: '${u.weight} left'),
+                _Stat(
+                  value: progress.daysLeft < 0 ? '0' : '${progress.daysLeft}',
+                  caption: progress.daysLeft < 0 ? 'overdue' : 'days left',
+                ),
+                _Stat(
+                  value: progress.perWeekKg == null
+                      ? '—'
+                      : '${sign(progress.perWeekKg!)}${u.fmtWeight(progress.perWeekKg!.abs())}',
+                  caption: '${u.weight} / week',
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _Stat extends StatelessWidget {
+  const _Stat({required this.value, required this.caption});
+
+  final String value;
+  final String caption;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Column(
+        children: [
+          FittedBox(child: Text(value, style: display(30, color: brandOrange))),
+          const SizedBox(height: 2),
+          Text(caption,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+        ],
+      ),
+    );
+  }
+}
+
+class _TrendCard extends StatefulWidget {
+  const _TrendCard({required this.data});
+
+  final AppData data;
+
+  @override
+  State<_TrendCard> createState() => _TrendCardState();
+}
+
+class _TrendCardState extends State<_TrendCard> {
+  /// 'weight' or a field key.
+  String _metric = 'weight';
+
+  @override
+  Widget build(BuildContext context) {
+    final data = widget.data;
+    final u = data.units;
+    final fields = data.visibleFields;
+    if (_metric != 'weight' && !fields.any((f) => f.key == _metric)) _metric = 'weight';
+    final isWeight = _metric == 'weight';
+
+    // One point per date, oldest first. Weight: morning entries only.
+    // Measurements: the earliest slot that has a value that day.
+    final byDate = <DateTime, double>{};
+    for (final e in data.entries.reversed) {
+      if (isWeight) {
+        if (e.isMorning && e.weightKg != null) byDate[e.date] = u.weightOut(e.weightKg!);
+      } else {
+        final v = e.measurements[_metric];
+        if (v != null) byDate.putIfAbsent(e.date, () => u.lengthOut(v));
+      }
+    }
+    final goalY = isWeight && data.goal != null ? u.weightOut(data.goal!.targetWeightKg) : null;
+
+    return SportCard(
+      title: 'Trend',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                for (final (key, name) in [('weight', 'Weight'), for (final f in fields) (f.key, f.label)])
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text(name.toUpperCase()),
+                      selected: _metric == key,
+                      showCheckmark: false,
+                      labelStyle: display(17,
+                          weight: FontWeight.w700,
+                          color: _metric == key ? Colors.white : Theme.of(context).colorScheme.onSurface),
+                      onSelected: (_) => setState(() => _metric = key),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 220,
+            child: byDate.isEmpty
+                ? Center(
+                    child: Text('No ${isWeight ? 'morning weights' : data.labelFor(_metric).toLowerCase()} logged yet',
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                  )
+                : _Chart(points: byDate, goalY: goalY, unit: isWeight ? u.weight : u.length),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Chart extends StatelessWidget {
+  const _Chart({required this.points, required this.goalY, required this.unit});
+
+  final Map<DateTime, double> points;
+  final double? goalY;
+  final String unit;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final dates = points.keys.toList()..sort();
+    final origin = dates.first;
+    double xOf(DateTime d) => d.difference(origin).inHours / 24.0;
+    final spots = [for (final d in dates) FlSpot(xOf(d), points[d]!)];
+
+    final ys = [...points.values, ?goalY];
+    var minY = ys.reduce(math.min), maxY = ys.reduce(math.max);
+    final pad = math.max(0.5, (maxY - minY) * 0.12);
+    minY = (minY - pad).floorToDouble();
+    maxY = (maxY + pad).ceilToDouble();
+    var maxX = spots.last.x;
+    final minX = maxX == 0 ? -1.0 : 0.0;
+    if (maxX == 0) maxX = 1;
+    final xInterval = math.max(1.0, (maxX - minX) / 3.5).ceilToDouble();
+    final grid = scheme.onSurface.withValues(alpha: 0.08);
+    final axisStyle = TextStyle(fontSize: 11, color: scheme.onSurfaceVariant, fontWeight: FontWeight.w600);
+
+    return LineChart(
+      LineChartData(
+        minX: minX,
+        maxX: maxX,
+        minY: minY,
+        maxY: maxY,
+        gridData: FlGridData(
+          drawVerticalLine: false,
+          getDrawingHorizontalLine: (_) => FlLine(color: grid, strokeWidth: 1),
+        ),
+        borderData: FlBorderData(show: false),
+        titlesData: FlTitlesData(
+          topTitles: const AxisTitles(),
+          rightTitles: const AxisTitles(),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 40,
+              getTitlesWidget: (v, meta) => v == meta.min || v == meta.max
+                  ? const SizedBox.shrink()
+                  : Text(meta.formattedValue, style: axisStyle),
+            ),
+          ),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 26,
+              interval: xInterval,
+              // fl_chart always labels the max; skip interval labels that would collide with it.
+              getTitlesWidget: (v, meta) => v < 0 || v > maxX || (v != maxX && maxX - v < xInterval * 0.6)
+                  ? const SizedBox.shrink()
+                  : Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Text(DateFormat('d MMM').format(origin.add(Duration(days: v.round()))),
+                          style: axisStyle),
+                    ),
+            ),
+          ),
+        ),
+        extraLinesData: ExtraLinesData(horizontalLines: [
+          if (goalY != null)
+            HorizontalLine(
+              y: goalY!,
+              color: brandOrange.withValues(alpha: 0.8),
+              strokeWidth: 2,
+              dashArray: [8, 6],
+              label: HorizontalLineLabel(
+                show: true,
+                alignment: Alignment.topRight,
+                labelResolver: (_) => 'GOAL',
+                style: display(14, color: brandOrange),
+              ),
+            ),
+        ]),
+        lineTouchData: LineTouchData(
+          touchTooltipData: LineTouchTooltipData(
+            getTooltipColor: (_) => scheme.inverseSurface,
+            getTooltipItems: (spots) => [
+              for (final s in spots)
+                LineTooltipItem(
+                  '${s.y.toStringAsFixed(1)} $unit\n${DateFormat('d MMM').format(origin.add(Duration(days: s.x.round())))}',
+                  TextStyle(color: scheme.onInverseSurface, fontWeight: FontWeight.w700),
+                ),
+            ],
+          ),
+        ),
+        lineBarsData: [
+          LineChartBarData(
+            spots: spots,
+            isCurved: spots.length > 2,
+            curveSmoothness: 0.2,
+            preventCurveOverShooting: true,
+            color: brandOrange,
+            barWidth: 4,
+            isStrokeCapRound: true,
+            dotData: FlDotData(
+              show: spots.length <= 40,
+              getDotPainter: (spot, _, _, _) => FlDotCirclePainter(
+                radius: 3.5,
+                color: brandOrange,
+                strokeWidth: 2,
+                strokeColor: scheme.surfaceContainerLowest,
+              ),
+            ),
+            belowBarData: BarAreaData(
+              show: true,
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [brandOrange.withValues(alpha: 0.28), brandOrange.withValues(alpha: 0.0)],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
