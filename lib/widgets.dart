@@ -4,6 +4,10 @@ import 'package:flutter/material.dart';
 
 import 'theme.dart';
 
+/// Minutes since midnight in the device's 12/24h format.
+String timeLabel(BuildContext context, int minutes) =>
+    TimeOfDay(hour: minutes ~/ 60, minute: minutes % 60).format(context);
+
 /// Rounded card with a section label and optional trailing action.
 class SportCard extends StatelessWidget {
   const SportCard({super.key, this.title, this.trailing, required this.child});

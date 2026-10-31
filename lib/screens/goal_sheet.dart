@@ -73,7 +73,7 @@ class _GoalSheetState extends ConsumerState<_GoalSheet> {
   Widget build(BuildContext context) {
     final data = ref.watch(appProvider);
     final u = data.units;
-    final start = data.goal?.startWeightKg ?? data.latestMorning?.weightKg;
+    final start = data.goal?.startWeightKg ?? data.latestMain?.weightKg;
     return Padding(
       padding: EdgeInsets.fromLTRB(20, 0, 20, 20 + MediaQuery.viewInsetsOf(context).bottom),
       child: Column(

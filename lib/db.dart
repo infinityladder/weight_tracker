@@ -12,21 +12,37 @@ class BodyLogDb {
 
   static const builtInFields = [('waist', 'Waist'), ('hips', 'Hips'), ('thigh', 'Thigh')];
 
+  static const _createEntries = '''
+    CREATE TABLE entries(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      date TEXT NOT NULL,
+      minutes INTEGER NOT NULL,
+      weight_kg REAL,
+      measurements TEXT NOT NULL DEFAULT '{}',
+      UNIQUE(date, minutes)
+    )''';
+
   static Future<BodyLogDb> open() async {
     final path = p.join(await getDatabasesPath(), 'body_log.db');
     final db = await openDatabase(
       path,
-      version: 1,
+      version: 2,
+      onUpgrade: (db, from, to) async {
+        if (from < 2) {
+          // v1 stored a named slot per entry; map each slot to a representative time.
+          await db.execute('ALTER TABLE entries RENAME TO entries_v1');
+          await db.execute(_createEntries);
+          await db.execute('''
+            INSERT INTO entries(id, date, minutes, weight_kg, measurements)
+            SELECT id, date,
+              CASE slot WHEN 'afterLunch' THEN 780 WHEN 'afterDinner' THEN 1140 ELSE 480 END,
+              weight_kg, measurements
+            FROM entries_v1''');
+          await db.execute('DROP TABLE entries_v1');
+        }
+      },
       onCreate: (db, version) async {
-        await db.execute('''
-          CREATE TABLE entries(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            date TEXT NOT NULL,
-            slot TEXT NOT NULL,
-            weight_kg REAL,
-            measurements TEXT NOT NULL DEFAULT '{}',
-            UNIQUE(date, slot)
-          )''');
+        await db.execute(_createEntries);
         await db.execute('''
           CREATE TABLE fields(
             key TEXT PRIMARY KEY,
@@ -56,26 +72,35 @@ class BodyLogDb {
     return Entry(
       id: r['id'] as int,
       date: DateTime.parse(r['date'] as String),
-      slot: TimeSlot.parse(r['slot'] as String),
+      minutes: r['minutes'] as int,
       weightKg: (r['weight_kg'] as num?)?.toDouble(),
       measurements: m.map((k, v) => MapEntry(k, (v as num).toDouble())),
     );
   }
 
-  /// Inserts, or updates the existing entry with the same date + slot.
+  /// Updates [e] by id when it has one, otherwise the entry at the same date +
+  /// time, otherwise inserts. Moving an entry onto another entry's date + time
+  /// replaces that other entry.
   Future<void> saveEntry(Entry e) async {
     final values = {
       'date': dateKey(e.date),
-      'slot': e.slot.name,
+      'minutes': e.minutes,
       'weight_kg': e.weightKg,
       'measurements': jsonEncode(e.measurements),
     };
     await _db.transaction((txn) async {
+      if (e.id != null) {
+        await txn.delete('entries',
+            where: 'date = ? AND minutes = ? AND id != ?',
+            whereArgs: [values['date'], e.minutes, e.id]);
+        await txn.update('entries', values, where: 'id = ?', whereArgs: [e.id]);
+        return;
+      }
       final updated = await txn.update(
         'entries',
         values,
-        where: 'date = ? AND slot = ?',
-        whereArgs: [values['date'], values['slot']],
+        where: 'date = ? AND minutes = ?',
+        whereArgs: [values['date'], e.minutes],
       );
       if (updated == 0) await txn.insert('entries', values);
     });

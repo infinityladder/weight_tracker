@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../models.dart';
 import '../state.dart';
 import '../theme.dart';
 import '../units.dart';
+import '../widgets.dart';
 
 Future<void> showSettingsSheet(BuildContext context) => showModalBottomSheet(
       context: context,
@@ -60,6 +62,25 @@ class _SettingsSheetState extends ConsumerState<_SettingsSheet> {
     if (ok == true) await ref.read(appProvider.notifier).removeField(key);
   }
 
+  Widget _timeButton(int minutes, String caption, WeighWindow Function(int) update) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () async {
+        final picked = await showTimePicker(
+          context: context,
+          initialTime: TimeOfDay(hour: minutes ~/ 60, minute: minutes % 60),
+        );
+        if (picked != null) {
+          await ref.read(appProvider.notifier).setWindow(update(picked.hour * 60 + picked.minute));
+        }
+      },
+      child: InputDecorator(
+        decoration: InputDecoration(labelText: caption),
+        child: Text(timeLabel(context, minutes), style: display(24, weight: FontWeight.w800)),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final data = ref.watch(appProvider);
@@ -85,6 +106,20 @@ class _SettingsSheetState extends ConsumerState<_SettingsSheet> {
               ],
               selected: {data.unitSystem},
               onSelectionChanged: (s) => ref.read(appProvider.notifier).setUnits(s.first),
+            ),
+            const SizedBox(height: 24),
+            Text('MAIN WEIGH-IN WINDOW', style: label(context)),
+            const SizedBox(height: 4),
+            Text('Weights logged in this time range are your main record (headline, chart, goal). '
+                'Others are notes.',
+                style: TextStyle(color: scheme.onSurfaceVariant)),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(child: _timeButton(data.window.start, 'From', (m) => WeighWindow(m, data.window.end))),
+                const SizedBox(width: 12),
+                Expanded(child: _timeButton(data.window.end, 'To', (m) => WeighWindow(data.window.start, m))),
+              ],
             ),
             const SizedBox(height: 24),
             Text('MEASUREMENT FIELDS', style: label(context)),

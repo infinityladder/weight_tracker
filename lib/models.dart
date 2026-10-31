@@ -1,47 +1,66 @@
-enum TimeSlot {
-  morning('Morning'),
-  afterLunch('After lunch'),
-  afterDinner('After dinner');
-
-  const TimeSlot(this.label);
-  final String label;
-
-  /// Before 12:00 = morning, before 17:00 = after lunch, otherwise after dinner.
-  static TimeSlot forTime(DateTime t) =>
-      t.hour < 12 ? morning : (t.hour < 17 ? afterLunch : afterDinner);
-
-  static TimeSlot parse(String s) =>
-      values.firstWhere((v) => v.name == s, orElse: () => morning);
-}
-
 DateTime dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
 String dateKey(DateTime d) =>
     '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
+/// Minutes since midnight as 24h "HH:mm".
+String hhmm(int minutes) =>
+    '${(minutes ~/ 60).toString().padLeft(2, '0')}:${(minutes % 60).toString().padLeft(2, '0')}';
+
+int minutesOf(DateTime t) => t.hour * 60 + t.minute;
+
+/// Time of day range whose weights count as the main record. Inclusive at both
+/// ends; may wrap past midnight (e.g. 22:00–02:00).
+class WeighWindow {
+  const WeighWindow(this.start, this.end);
+
+  static const defaultWindow = WeighWindow(6 * 60, 10 * 60);
+
+  final int start;
+  final int end;
+
+  bool contains(int minutes) =>
+      start <= end ? minutes >= start && minutes <= end : minutes >= start || minutes <= end;
+
+  String encode() => '$start-$end';
+
+  static WeighWindow decode(String? s) {
+    final parts = s?.split('-');
+    if (parts == null || parts.length != 2) return defaultWindow;
+    final a = int.tryParse(parts[0]), b = int.tryParse(parts[1]);
+    return a == null || b == null ? defaultWindow : WeighWindow(a, b);
+  }
+
+  @override
+  bool operator ==(Object other) => other is WeighWindow && other.start == start && other.end == end;
+
+  @override
+  int get hashCode => Object.hash(start, end);
+}
+
 class Entry {
   const Entry({
     this.id,
     required this.date,
-    required this.slot,
+    required this.minutes,
     this.weightKg,
     this.measurements = const {},
   });
 
   final int? id;
   final DateTime date;
-  final TimeSlot slot;
+
+  /// Time of day the entry was logged, in minutes since midnight.
+  final int minutes;
   final double? weightKg;
 
   /// Field key -> centimetres.
   final Map<String, double> measurements;
 
-  bool get isMorning => slot == TimeSlot.morning;
-
-  /// Newest first: later date, then later slot.
+  /// Newest first: later date, then later time.
   static int newestFirst(Entry a, Entry b) {
     final byDate = b.date.compareTo(a.date);
-    return byDate != 0 ? byDate : b.slot.index.compareTo(a.slot.index);
+    return byDate != 0 ? byDate : b.minutes.compareTo(a.minutes);
   }
 }
 
@@ -73,7 +92,7 @@ class Goal {
   final double targetWeightKg;
   final DateTime targetDate;
 
-  /// Latest morning weight at the time the goal was set.
+  /// Latest main weigh-in at the time the goal was set.
   final double startWeightKg;
 
   Map<String, Object> toJson() => {

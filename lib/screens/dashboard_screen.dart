@@ -41,8 +41,8 @@ class _Scoreboard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final u = data.units;
-    final latest = data.latestMorning;
-    final first = data.firstMorning;
+    final latest = data.latestMain;
+    final first = data.firstMain;
     final white70 = Colors.white.withValues(alpha: 0.8);
 
     return Container(
@@ -58,11 +58,11 @@ class _Scoreboard extends StatelessWidget {
           ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('MORNING WEIGHT', style: label(context, color: white70)),
+                Text('MAIN WEIGH-IN', style: label(context, color: white70)),
                 const SizedBox(height: 14),
                 Text('NO WEIGH-IN YET', style: display(44, color: Colors.white)),
                 const SizedBox(height: 6),
-                Text('Log a morning weight to start your scoreboard.',
+                Text('Log a weight inside your main weigh-in window to start your scoreboard.',
                     style: TextStyle(color: white70, fontSize: 15)),
                 const SizedBox(height: 14),
                 OutlinedButton.icon(
@@ -82,8 +82,10 @@ class _Scoreboard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Expanded(child: Text('MORNING WEIGHT', style: label(context, color: white70))),
-                    Text(DateFormat('EEE d MMM').format(latest.date).toUpperCase(),
+                    Expanded(child: Text('MAIN WEIGH-IN', style: label(context, color: white70))),
+                    Text(
+                        '${DateFormat('EEE d MMM').format(latest.date)}  ${timeLabel(context, latest.minutes)}'
+                            .toUpperCase(),
                         style: label(context, color: white70)),
                   ],
                 ),
@@ -108,7 +110,7 @@ class _Scoreboard extends StatelessWidget {
                 ],
                 const SizedBox(height: 14),
                 TapeMeasure(
-                  values: [for (final e in data.morningWeights) u.weightOut(e.weightKg!)],
+                  values: [for (final e in data.mainWeights) u.weightOut(e.weightKg!)],
                   latest: u.weightOut(latest.weightKg!),
                 ),
               ],
@@ -165,7 +167,10 @@ class _TodaysNotes extends StatelessWidget {
           Text("TODAY'S NOTES", style: label(context)),
           const SizedBox(height: 4),
           Text(
-            [for (final n in notes) '${n.slot.label} ${data.units.fmtWeight(n.weightKg!)} ${data.units.weight}']
+            [
+              for (final n in notes)
+                '${timeLabel(context, n.minutes)}  ${data.units.fmtWeight(n.weightKg!)} ${data.units.weight}'
+            ]
                 .join('   ·   '),
             style: TextStyle(color: muted, fontWeight: FontWeight.w600),
           ),
@@ -193,14 +198,14 @@ class _GoalCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              data.latestMorning == null
-                  ? 'Log a morning weight first, then set a target.'
+              data.latestMain == null
+                  ? 'Log a main weigh-in first, then set a target.'
                   : 'Set a target weight and date to track your progress.',
               style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 12),
             OutlinedButton.icon(
-              onPressed: data.latestMorning == null ? null : () => showGoalSheet(context),
+              onPressed: data.latestMain == null ? null : () => showGoalSheet(context),
               icon: const Icon(Icons.flag),
               label: const Text('SET GOAL'),
               style: OutlinedButton.styleFrom(
@@ -329,12 +334,12 @@ class _TrendCardState extends State<_TrendCard> {
     if (_metric != 'weight' && !fields.any((f) => f.key == _metric)) _metric = 'weight';
     final isWeight = _metric == 'weight';
 
-    // One point per date, oldest first. Weight: morning entries only.
-    // Measurements: the earliest slot that has a value that day.
+    // One point per date, oldest first. Weight: main weigh-ins only.
+    // Measurements: the earliest entry that has a value that day.
     final byDate = <DateTime, double>{};
     for (final e in data.entries.reversed) {
       if (isWeight) {
-        if (e.isMorning && e.weightKg != null) byDate[e.date] = u.weightOut(e.weightKg!);
+        if (data.isMain(e)) byDate[e.date] = u.weightOut(e.weightKg!);
       } else {
         final v = e.measurements[_metric];
         if (v != null) byDate.putIfAbsent(e.date, () => u.lengthOut(v));
@@ -372,7 +377,7 @@ class _TrendCardState extends State<_TrendCard> {
             height: 220,
             child: byDate.isEmpty
                 ? Center(
-                    child: Text('No ${isWeight ? 'morning weights' : data.labelFor(_metric).toLowerCase()} logged yet',
+                    child: Text('No ${isWeight ? 'main weigh-ins' : data.labelFor(_metric).toLowerCase()} logged yet',
                         style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
                   )
                 : _Chart(points: byDate, goalY: goalY, unit: isWeight ? u.weight : u.length),

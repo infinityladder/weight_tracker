@@ -11,11 +11,12 @@ import 'models.dart';
 import 'units.dart';
 
 class AppData {
-  const AppData({
+  AppData({
     required this.entries,
     required this.fields,
     required this.goal,
     required this.unitSystem,
+    this.window = WeighWindow.defaultWindow,
   });
 
   /// Newest first.
@@ -24,31 +25,45 @@ class AppData {
   final Goal? goal;
   final UnitSystem unitSystem;
 
+  /// Weights logged inside this window are the main record.
+  final WeighWindow window;
+
   Units get units => Units(unitSystem);
 
   List<MeasureField> get visibleFields => fields.where((f) => !f.hidden).toList();
 
-  /// Morning entries that have a weight, newest first. These are the main record.
-  List<Entry> get morningWeights =>
-      entries.where((e) => e.isMorning && e.weightKg != null).toList();
+  /// The main record, newest first: per date, the earliest weight logged
+  /// inside the main window. Every other weight is a note.
+  late final List<Entry> mainWeights = () {
+    final seen = <DateTime>{};
+    final out = [
+      for (final e in entries.reversed)
+        if (e.weightKg != null && window.contains(e.minutes) && seen.add(e.date)) e,
+    ];
+    return out.reversed.toList();
+  }();
 
-  Entry? get latestMorning => morningWeights.firstOrNull;
-  Entry? get firstMorning => morningWeights.lastOrNull;
+  late final Set<int?> _mainIds = {for (final e in mainWeights) e.id};
 
-  Entry? entryFor(DateTime date, TimeSlot slot) {
+  bool isMain(Entry e) => _mainIds.contains(e.id);
+
+  Entry? get latestMain => mainWeights.firstOrNull;
+  Entry? get firstMain => mainWeights.lastOrNull;
+
+  Entry? entryAt(DateTime date, int minutes) {
     final d = dateOnly(date);
-    return entries.where((e) => e.date == d && e.slot == slot).firstOrNull;
+    return entries.where((e) => e.date == d && e.minutes == minutes).firstOrNull;
   }
 
-  /// Lunch/dinner weights logged on [day], in slot order.
+  /// Weights logged on [day] that aren't the main weigh-in, earliest first.
   List<Entry> notesFor(DateTime day) {
     final d = dateOnly(day);
-    return entries.where((e) => e.date == d && !e.isMorning && e.weightKg != null).toList()
-      ..sort((a, b) => a.slot.index.compareTo(b.slot.index));
+    return entries.where((e) => e.date == d && e.weightKg != null && !isMain(e)).toList()
+      ..sort((a, b) => a.minutes.compareTo(b.minutes));
   }
 
   GoalProgress? progress(DateTime today) {
-    final g = goal, latest = latestMorning;
+    final g = goal, latest = latestMain;
     if (g == null || latest == null) return null;
     return GoalProgress(goal: g, currentKg: latest.weightKg!, today: today);
   }
@@ -56,11 +71,12 @@ class AppData {
   String labelFor(String key) =>
       fields.where((f) => f.key == key).firstOrNull?.label ?? key;
 
-  AppData copyWith({UnitSystem? unitSystem}) => AppData(
+  AppData copyWith({UnitSystem? unitSystem, WeighWindow? window}) => AppData(
         entries: entries,
         fields: fields,
         goal: goal,
         unitSystem: unitSystem ?? this.unitSystem,
+        window: window ?? this.window,
       );
 }
 
@@ -71,6 +87,7 @@ Future<AppData> loadAppData(BodyLogDb db) async {
     fields: await db.fields(),
     goal: goalJson == null ? null : Goal.fromJson(jsonDecode(goalJson) as Map<String, dynamic>),
     unitSystem: (await db.setting('units')) == 'imperial' ? UnitSystem.imperial : UnitSystem.metric,
+    window: WeighWindow.decode(await db.setting('window')),
   );
 }
 
@@ -103,6 +120,11 @@ class AppController extends Notifier<AppData> {
     await _db.setSetting('units', system.name);
   }
 
+  Future<void> setWindow(WeighWindow window) async {
+    state = state.copyWith(window: window);
+    await _db.setSetting('window', window.encode());
+  }
+
   Future<void> addField(String label) async {
     await _db.addField(label);
     await _reload();
@@ -113,10 +135,10 @@ class AppController extends Notifier<AppData> {
     await _reload();
   }
 
-  /// Keeps the original start weight when editing; uses the latest morning
-  /// weight when setting a new goal.
+  /// Keeps the original start weight when editing; uses the latest main
+  /// weigh-in when setting a new goal.
   Future<void> setGoal(double targetKg, DateTime targetDate) async {
-    final start = state.goal?.startWeightKg ?? state.latestMorning?.weightKg;
+    final start = state.goal?.startWeightKg ?? state.latestMain?.weightKg;
     if (start == null) return;
     final goal = Goal(targetWeightKg: targetKg, targetDate: dateOnly(targetDate), startWeightKg: start);
     await _db.setSetting('goal', jsonEncode(goal.toJson()));
@@ -146,7 +168,8 @@ String buildCsv(AppData data) {
   String q(String s) => RegExp(r'[",\n]').hasMatch(s) ? '"${s.replaceAll('"', '""')}"' : s;
   final header = [
     'date',
-    'time_slot',
+    'time',
+    'main_weigh_in',
     'weight_${u.weight}',
     for (final f in data.fields) '${f.label} (${u.length})',
   ];
@@ -155,7 +178,8 @@ String buildCsv(AppData data) {
     for (final e in data.entries.reversed)
       [
         dateKey(e.date),
-        e.slot.name,
+        hhmm(e.minutes),
+        data.isMain(e) ? 'yes' : 'no',
         e.weightKg == null ? '' : u.fmtWeight(e.weightKg!),
         for (final f in data.fields)
           e.measurements[f.key] == null ? '' : u.fmtLength(e.measurements[f.key]!),

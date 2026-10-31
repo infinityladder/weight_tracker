@@ -66,8 +66,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       1 => LogScreen(
           // Recreate the form when the target entry or the units change.
           key: ValueKey((_editing?.id, units)),
-          initialDate: _editing?.date,
-          initialSlot: _editing?.slot,
+          editing: _editing,
           onSaved: () => _go(0),
         ),
       _ => HistoryScreen(onEdit: (e) => setState(() {

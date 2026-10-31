@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../models.dart';
 import '../state.dart';
 import '../theme.dart';
+import '../widgets.dart';
 
 class HistoryScreen extends ConsumerWidget {
   const HistoryScreen({super.key, required this.onEdit});
@@ -64,7 +65,7 @@ class HistoryScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(DateFormat('EEEE d MMM yyyy').format(e.date).toUpperCase(), style: display(26)),
-              Text(e.slot.label, style: label(sheet)),
+              Text(timeLabel(sheet, e.minutes), style: label(sheet)),
               const SizedBox(height: 16),
               FilledButton.icon(
                 onPressed: () {
@@ -102,7 +103,8 @@ Future<void> confirmDelete(BuildContext context, WidgetRef ref, Entry e) async {
     context: context,
     builder: (d) => AlertDialog(
       title: const Text('Delete entry?'),
-      content: Text('${e.slot.label}, ${DateFormat('d MMM yyyy').format(e.date)}. This can\'t be undone.'),
+      content: Text(
+          '${DateFormat('d MMM yyyy').format(e.date)}, ${timeLabel(context, e.minutes)}. This can\'t be undone.'),
       actions: [
         TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Cancel')),
         TextButton(
@@ -129,6 +131,7 @@ class _EntryTile extends StatelessWidget {
     final u = data.units;
     final e = entry;
     final muted = scheme.onSurfaceVariant;
+    final main = data.isMain(e);
     final measures = [
       for (final f in data.fields)
         if (e.measurements[f.key] != null) '${f.label} ${u.fmtLength(e.measurements[f.key]!)}',
@@ -151,11 +154,12 @@ class _EntryTile extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: e.isMorning ? brandOrange : scheme.surfaceContainerHighest,
+                        color: main ? brandOrange : scheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(6),
                       ),
-                      child: Text(e.slot.label.toUpperCase(),
-                          style: display(13, weight: FontWeight.w700, color: e.isMorning ? Colors.white : muted)),
+                      child: Text(
+                          main ? '${timeLabel(context, e.minutes)} · MAIN' : timeLabel(context, e.minutes),
+                          style: display(13, weight: FontWeight.w700, color: main ? Colors.white : muted)),
                     ),
                     if (measures.isNotEmpty) ...[
                       const SizedBox(height: 6),
@@ -174,9 +178,9 @@ class _EntryTile extends StatelessWidget {
                         TextSpan(text: u.fmtWeight(e.weightKg!)),
                         TextSpan(text: ' ${u.weight}', style: display(16, color: muted)),
                       ]),
-                      style: display(34, color: e.isMorning ? null : muted.withValues(alpha: 0.7)),
+                      style: display(34, color: main ? null : muted.withValues(alpha: 0.7)),
                     ),
-                    if (!e.isMorning) Text('note', style: TextStyle(fontSize: 12, color: muted)),
+                    if (!main) Text('note', style: TextStyle(fontSize: 12, color: muted)),
                   ],
                 ),
             ],

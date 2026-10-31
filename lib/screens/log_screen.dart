@@ -6,13 +6,14 @@ import '../models.dart';
 import '../state.dart';
 import '../theme.dart';
 import '../units.dart';
+import '../widgets.dart';
 import 'settings_sheet.dart';
 
 class LogScreen extends ConsumerStatefulWidget {
-  const LogScreen({super.key, this.initialDate, this.initialSlot, required this.onSaved});
+  const LogScreen({super.key, this.editing, required this.onSaved});
 
-  final DateTime? initialDate;
-  final TimeSlot? initialSlot;
+  /// Entry opened from history; null for a new entry.
+  final Entry? editing;
   final VoidCallback onSaved;
 
   @override
@@ -21,7 +22,7 @@ class LogScreen extends ConsumerStatefulWidget {
 
 class _LogScreenState extends ConsumerState<LogScreen> {
   late DateTime _date;
-  late TimeSlot _slot;
+  late int _minutes;
   final _weight = TextEditingController();
   final _fields = <String, TextEditingController>{};
   bool _saving = false;
@@ -32,9 +33,10 @@ class _LogScreenState extends ConsumerState<LogScreen> {
   void initState() {
     super.initState();
     final now = DateTime.now();
-    _date = dateOnly(widget.initialDate ?? now);
-    _slot = widget.initialSlot ?? TimeSlot.forTime(now);
-    _fill();
+    final e = widget.editing;
+    _date = e?.date ?? dateOnly(now);
+    _minutes = e?.minutes ?? minutesOf(now);
+    if (e != null) _fill(e);
   }
 
   @override
@@ -46,40 +48,65 @@ class _LogScreenState extends ConsumerState<LogScreen> {
     super.dispose();
   }
 
-  /// Loads the existing entry for the selected date + slot, or clears the form.
-  void _fill() {
+  void _fill(Entry e) {
     final data = ref.read(appProvider);
     final u = data.units;
-    final e = data.entryFor(_date, _slot);
-    _weight.text = e?.weightKg == null ? '' : u.fmtWeight(e!.weightKg!);
+    _weight.text = e.weightKg == null ? '' : u.fmtWeight(e.weightKg!);
     for (final f in data.fields) {
-      final v = e?.measurements[f.key];
+      final v = e.measurements[f.key];
       _ctrl(f.key).text = v == null ? '' : u.fmtLength(v);
     }
   }
 
+  /// For a new entry, landing on an existing entry's date + time loads it,
+  /// since saving will update that entry.
+  void _moved() {
+    if (widget.editing != null) return;
+    final existing = ref.read(appProvider).entryAt(_date, _minutes);
+    if (existing != null) _fill(existing);
+  }
+
   Future<void> _pickDate() async {
-    final today = dateOnly(DateTime.now());
     final picked = await showDatePicker(
       context: context,
       initialDate: _date,
       firstDate: DateTime(2000),
-      lastDate: today,
+      lastDate: dateOnly(DateTime.now()),
     );
     if (picked != null) {
       setState(() {
         _date = dateOnly(picked);
-        _fill();
+        _moved();
       });
     }
+  }
+
+  Future<void> _pickTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: _minutes ~/ 60, minute: _minutes % 60),
+    );
+    if (picked != null) {
+      setState(() {
+        _minutes = picked.hour * 60 + picked.minute;
+        _moved();
+      });
+    }
+  }
+
+  /// Another entry already at the selected date + time (not the one being edited).
+  Entry? _clash(AppData data) {
+    final e = data.entryAt(_date, _minutes);
+    return e != null && e.id != widget.editing?.id ? e : null;
   }
 
   Future<void> _save() async {
     final data = ref.read(appProvider);
     final u = data.units;
     final weight = parseNumber(_weight.text);
+    final base = widget.editing ?? _clash(data);
     // Start from the existing values so removed (hidden) fields keep their data.
-    final measurements = {...?data.entryFor(_date, _slot)?.measurements};
+    final measurements = {...?base?.measurements};
     for (final f in data.visibleFields) {
       final v = parseNumber(_ctrl(f.key).text);
       if (v == null) {
@@ -94,17 +121,17 @@ class _LogScreenState extends ConsumerState<LogScreen> {
       return;
     }
     setState(() => _saving = true);
-    final existed = data.entryFor(_date, _slot) != null;
     await ref.read(appProvider.notifier).saveEntry(Entry(
+          id: widget.editing?.id,
           date: _date,
-          slot: _slot,
+          minutes: _minutes,
           weightKg: weight == null ? null : u.weightIn(weight),
           measurements: measurements,
         ));
     if (!mounted) return;
     setState(() => _saving = false);
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(existed ? 'Entry updated' : 'Entry saved'),
+      content: Text(base != null ? 'Entry updated' : 'Entry saved'),
     ));
     widget.onSaved();
   }
@@ -114,43 +141,77 @@ class _LogScreenState extends ConsumerState<LogScreen> {
     final data = ref.watch(appProvider);
     final u = data.units;
     final scheme = Theme.of(context).colorScheme;
-    final existing = data.entryFor(_date, _slot) != null;
+    final clash = _clash(data);
+    final updating = widget.editing != null || clash != null;
+    final inWindow = data.window.contains(_minutes);
     final fields = data.visibleFields;
+    final windowText = '${timeLabel(context, data.window.start)}–${timeLabel(context, data.window.end)}';
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
       children: [
-        InkWell(
-          onTap: _pickDate,
-          borderRadius: BorderRadius.circular(16),
-          child: InputDecorator(
-            decoration: const InputDecoration(labelText: 'Date', suffixIcon: Icon(Icons.calendar_today)),
-            child: Text(DateFormat('EEEE d MMM yyyy').format(_date),
-                style: display(24, weight: FontWeight.w800)),
-          ),
-        ),
-        const SizedBox(height: 14),
-        SegmentedButton<TimeSlot>(
-          showSelectedIcon: false,
-          segments: [
-            for (final s in TimeSlot.values) ButtonSegment(value: s, label: Text(s.label.toUpperCase())),
+        Row(
+          children: [
+            Expanded(
+              flex: 3,
+              child: InkWell(
+                onTap: _pickDate,
+                borderRadius: BorderRadius.circular(16),
+                child: InputDecorator(
+                  decoration: const InputDecoration(labelText: 'Date'),
+                  child: Text(DateFormat('EEE d MMM yyyy').format(_date),
+                      maxLines: 1, overflow: TextOverflow.ellipsis,
+                      style: display(24, weight: FontWeight.w800)),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              flex: 2,
+              child: InkWell(
+                onTap: _pickTime,
+                borderRadius: BorderRadius.circular(16),
+                child: InputDecorator(
+                  decoration: const InputDecoration(labelText: 'Time'),
+                  child: Text(timeLabel(context, _minutes),
+                      maxLines: 1, style: display(24, weight: FontWeight.w800)),
+                ),
+              ),
+            ),
           ],
-          selected: {_slot},
-          onSelectionChanged: (s) => setState(() {
-            _slot = s.first;
-            _fill();
-          }),
         ),
-        if (existing)
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Icon(inWindow ? Icons.star : Icons.sticky_note_2_outlined,
+                size: 20, color: inWindow ? brandOrange : scheme.onSurfaceVariant),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                inWindow
+                    ? 'Main weigh-in window ($windowText)'
+                    : 'Outside main window ($windowText) – weight is saved as a note',
+                style: TextStyle(
+                    color: inWindow ? brandOrange : scheme.onSurfaceVariant, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
+        if (updating)
           Padding(
-            padding: const EdgeInsets.only(top: 10),
+            padding: const EdgeInsets.only(top: 8),
             child: Row(
               children: [
-                const Icon(Icons.edit_note, size: 20, color: brandOrange),
+                Icon(clash != null && widget.editing != null ? Icons.warning_amber : Icons.edit_note,
+                    size: 20, color: brandOrange),
                 const SizedBox(width: 6),
                 Expanded(
-                  child: Text('Editing the existing ${_slot.label.toLowerCase()} entry for this date',
-                      style: const TextStyle(color: brandOrange, fontWeight: FontWeight.w600)),
+                  child: Text(
+                    clash != null && widget.editing != null
+                        ? 'Another entry exists at this date and time – saving replaces it'
+                        : 'Editing the existing entry at this date and time',
+                    style: const TextStyle(color: brandOrange, fontWeight: FontWeight.w600),
+                  ),
                 ),
               ],
             ),
@@ -166,10 +227,6 @@ class _LogScreenState extends ConsumerState<LogScreen> {
             hintText: '0.0',
             suffixText: u.weight,
             suffixStyle: display(24, color: scheme.onSurfaceVariant),
-            helperMaxLines: 2,
-            helperText: _slot == TimeSlot.morning
-                ? 'Morning weight is your main record'
-                : 'Lunch/dinner weights are notes only – not used for your trend or goal',
           ),
         ),
         const SizedBox(height: 20),
@@ -208,7 +265,7 @@ class _LogScreenState extends ConsumerState<LogScreen> {
         const SizedBox(height: 28),
         FilledButton(
           onPressed: _saving ? null : _save,
-          child: Text(existing ? 'UPDATE ENTRY' : 'SAVE ENTRY'),
+          child: Text(updating ? 'UPDATE ENTRY' : 'SAVE ENTRY'),
         ),
       ],
     );

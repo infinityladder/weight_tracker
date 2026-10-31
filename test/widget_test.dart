@@ -4,11 +4,18 @@ import 'package:body_log/units.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('default time slot follows time of day', () {
-    expect(TimeSlot.forTime(DateTime(2026, 1, 1, 11, 59)), TimeSlot.morning);
-    expect(TimeSlot.forTime(DateTime(2026, 1, 1, 12)), TimeSlot.afterLunch);
-    expect(TimeSlot.forTime(DateTime(2026, 1, 1, 16, 59)), TimeSlot.afterLunch);
-    expect(TimeSlot.forTime(DateTime(2026, 1, 1, 17)), TimeSlot.afterDinner);
+  test('main window contains its ends and can wrap midnight', () {
+    const w = WeighWindow(6 * 60, 10 * 60);
+    expect(w.contains(6 * 60), isTrue);
+    expect(w.contains(10 * 60), isTrue);
+    expect(w.contains(10 * 60 + 1), isFalse);
+    const night = WeighWindow(22 * 60, 2 * 60);
+    expect(night.contains(23 * 60), isTrue);
+    expect(night.contains(60), isTrue);
+    expect(night.contains(12 * 60), isFalse);
+    expect(WeighWindow.decode(w.encode()), w);
+    expect(WeighWindow.decode('junk'), WeighWindow.defaultWindow);
+    expect(hhmm(7 * 60 + 5), '07:05');
   });
 
   test('unit conversion round-trips', () {
@@ -46,28 +53,31 @@ void main() {
     });
   });
 
-  test('morning weights drive the headline; lunch/dinner are notes', () {
+  test('earliest weight in the window is the main record; the rest are notes', () {
     final d1 = DateTime(2026, 1, 1), d2 = DateTime(2026, 1, 2);
-    final data = AppData(
-      entries: [
-        Entry(id: 4, date: d2, slot: TimeSlot.afterDinner, weightKg: 81),
-        Entry(id: 3, date: d2, slot: TimeSlot.morning, weightKg: 79.5),
-        Entry(id: 2, date: d1, slot: TimeSlot.afterLunch, weightKg: 80.9),
-        Entry(id: 1, date: d1, slot: TimeSlot.morning, weightKg: 80),
-      ],
-      fields: const [],
-      goal: null,
-      unitSystem: UnitSystem.metric,
-    );
-    expect(data.latestMorning!.id, 3);
-    expect(data.firstMorning!.id, 1);
-    expect(data.notesFor(d2).map((e) => e.id), [4]);
+    final entries = [
+      Entry(id: 1, date: d1, minutes: 7 * 60, weightKg: 80),
+      Entry(id: 2, date: d1, minutes: 13 * 60, weightKg: 80.9),
+      Entry(id: 3, date: d2, minutes: 6 * 60 + 30, weightKg: 79.5),
+      Entry(id: 4, date: d2, minutes: 9 * 60, weightKg: 79.7), // second in-window weigh-in
+      Entry(id: 5, date: d2, minutes: 19 * 60, weightKg: 81),
+      Entry(id: 6, date: d2, minutes: 8 * 60, measurements: const {'waist': 90}), // no weight
+    ]..sort(Entry.newestFirst);
+    final data = AppData(entries: entries, fields: const [], goal: null, unitSystem: UnitSystem.metric);
+    expect(data.mainWeights.map((e) => e.id), [3, 1]);
+    expect(data.latestMain!.id, 3);
+    expect(data.firstMain!.id, 1);
+    expect(data.notesFor(d2).map((e) => e.id), [4, 5]);
+
+    final shifted = data.copyWith(window: const WeighWindow(12 * 60, 14 * 60));
+    expect(shifted.mainWeights.map((e) => e.id), [2]);
   });
 
-  test('csv export quotes labels and includes hidden fields', () {
+  test('csv export has time and main flag, quotes labels, includes hidden fields', () {
     final data = AppData(
       entries: [
-        Entry(id: 1, date: DateTime(2026, 1, 1), slot: TimeSlot.morning, weightKg: 80, measurements: const {'waist': 90, 'c_arm': 30}),
+        Entry(id: 2, date: DateTime(2026, 1, 1), minutes: 18 * 60, weightKg: 81),
+        Entry(id: 1, date: DateTime(2026, 1, 1), minutes: 7 * 60 + 5, weightKg: 80, measurements: const {'waist': 90, 'c_arm': 30}),
       ],
       fields: const [
         MeasureField(key: 'waist', label: 'Waist', builtIn: true, hidden: false, sortOrder: 0),
@@ -76,6 +86,11 @@ void main() {
       goal: null,
       unitSystem: UnitSystem.metric,
     );
-    expect(buildCsv(data), 'date,time_slot,weight_kg,Waist (cm),"Arm, left (cm)"\n2026-01-01,morning,80.0,90.0,30.0\n');
+    expect(
+      buildCsv(data),
+      'date,time,main_weigh_in,weight_kg,Waist (cm),"Arm, left (cm)"\n'
+      '2026-01-01,07:05,yes,80.0,90.0,30.0\n'
+      '2026-01-01,18:00,no,81.0,,\n',
+    );
   });
 }
