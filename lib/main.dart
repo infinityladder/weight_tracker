@@ -88,11 +88,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 data.unitSystem == UnitSystem.metric ? UnitSystem.imperial : UnitSystem.metric),
           ),
           IconButton(
-            tooltip: 'Measurements',
-            icon: const Icon(Icons.tune),
-            onPressed: () => showMeasurePickerSheet(context),
-          ),
-          IconButton(
             tooltip: 'Settings',
             icon: const Icon(Icons.settings),
             onPressed: () => showSettingsSheet(context),
@@ -116,7 +111,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 child: data.visibleFields.isEmpty
                     ? Center(
                         child: OutlinedButton.icon(
-                          onPressed: () => showMeasurePickerSheet(context),
+                          onPressed: () => showSettingsSheet(context),
                           icon: const Icon(Icons.tune),
                           label: const Text('CHOOSE MEASUREMENTS'),
                           style: OutlinedButton.styleFrom(

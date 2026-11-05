@@ -121,33 +121,6 @@ class _SettingsSheetState extends ConsumerState<_SettingsSheet> {
   }
 }
 
-/// Just the measurement picker, for quick access from the home screen.
-Future<void> showMeasurePickerSheet(BuildContext context) => showModalBottomSheet(
-  context: context,
-  isScrollControlled: true,
-  showDragHandle: true,
-  builder: (_) => Consumer(
-    builder: (context, ref, _) => _PinnedDoneSheet(
-      child: ListView(
-        shrinkWrap: true,
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-        children: [
-          Text('MEASUREMENTS', style: display(30)),
-          const SizedBox(height: 4),
-          Text(
-            'Pick what shows on your body.',
-            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 14),
-          BodyTypePicker(data: ref.watch(appProvider)),
-          const SizedBox(height: 14),
-          MeasurePicker(data: ref.watch(appProvider)),
-        ],
-      ),
-    ),
-  ),
-);
-
 /// Sheet body that scrolls above a DONE button that always stays in view,
 /// clear of the system navigation bar.
 class _PinnedDoneSheet extends StatelessWidget {
