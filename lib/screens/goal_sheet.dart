@@ -6,6 +6,7 @@ import '../models.dart';
 import '../state.dart';
 import '../theme.dart';
 import '../units.dart';
+import 'start_sheet.dart';
 
 Future<void> showGoalSheet(BuildContext context) => showModalBottomSheet(
       context: context,
@@ -73,7 +74,8 @@ class _GoalSheetState extends ConsumerState<_GoalSheet> {
   Widget build(BuildContext context) {
     final data = ref.watch(appProvider);
     final u = data.units;
-    final start = data.goal?.startWeightKg ?? data.latestMain?.weightKg;
+    final start = data.goal?.startWeightKg ??
+        (data.startDate != null ? data.startMain : data.latestMain)?.weightKg;
     return Padding(
       padding: EdgeInsets.fromLTRB(20, 0, 20, 20 + MediaQuery.viewInsetsOf(context).bottom),
       child: Column(
@@ -81,11 +83,20 @@ class _GoalSheetState extends ConsumerState<_GoalSheet> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(data.goal == null ? 'SET GOAL' : 'EDIT GOAL', style: display(32)),
-          if (start != null) ...[
-            const SizedBox(height: 4),
-            Text('Starting from ${u.fmtWeight(start)} ${u.weight}',
-                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-          ],
+          if (start != null)
+            Row(
+              children: [
+                Expanded(
+                  child: Text('Starting from ${u.fmtWeight(start)} ${u.weight}',
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                ),
+                TextButton.icon(
+                  onPressed: () => showStartSheet(context),
+                  icon: const Icon(Icons.edit_calendar, size: 18),
+                  label: const Text('Pick from history'),
+                ),
+              ],
+            ),
           const SizedBox(height: 18),
           TextField(
             controller: _target,

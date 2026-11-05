@@ -18,7 +18,7 @@ class Units {
   double lengthOut(double cm) => metric ? cm : cm / cmPerIn;
   double lengthIn(double value) => metric ? value : value * cmPerIn;
 
-  String fmtWeight(double kg) => weightOut(kg).toStringAsFixed(1);
+  String fmtWeight(double kg) => weightOut(kg).toStringAsFixed(2);
   String fmtLength(double cm) => lengthOut(cm).toStringAsFixed(1);
 }
 

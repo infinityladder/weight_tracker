@@ -10,7 +10,51 @@ class BodyLogDb {
 
   final Database _db;
 
-  static const builtInFields = [('waist', 'Waist'), ('hips', 'Hips'), ('thigh', 'Thigh')];
+  /// The fixed list of measurements users choose from, in body order. Keys
+  /// match those used by earlier versions so past values carry over.
+  static const measures = [
+    ('c_neck', 'Neck'),
+    ('c_shoulder', 'Shoulders'),
+    ('c_chest', 'Chest'),
+    ('c_l_bicep', 'L-Bicep'),
+    ('c_r_bicep', 'R-Bicep'),
+    ('c_l_forearm', 'L-Forearm'),
+    ('c_r_forearm', 'R-Forearm'),
+    ('c_abdomen', 'Abdomen'),
+    ('waist', 'Waist'),
+    ('hips', 'Hips'),
+    ('c_l_thigh', 'L-Thigh'),
+    ('c_r_thigh', 'R-Thigh'),
+    ('c_l_above_knee', 'L-Above Knee'),
+    ('c_r_above_knee', 'R-Above Knee'),
+    ('c_l_calf', 'L-Calf'),
+    ('c_r_calf', 'R-Calf'),
+  ];
+
+  /// Shown on a fresh install; the rest are switched on in Settings.
+  static const shownByDefault = {'c_chest', 'waist', 'hips', 'c_l_thigh', 'c_r_thigh'};
+
+  /// Makes the fields table match [measures]: standard fields get their label
+  /// and order, missing ones are added (hidden unless [fresh] and shown by
+  /// default), and anything else is hidden for good. Values are never deleted.
+  static Future<void> _syncMeasures(DatabaseExecutor db, {required bool fresh}) async {
+    for (final (i, (key, label)) in measures.indexed) {
+      final updated = await db.update('fields', {'label': label, 'built_in': 1, 'sort_order': i},
+          where: 'key = ?', whereArgs: [key]);
+      if (updated == 0) {
+        await db.insert('fields', {
+          'key': key,
+          'label': label,
+          'built_in': 1,
+          'hidden': fresh && shownByDefault.contains(key) ? 0 : 1,
+          'sort_order': i,
+        });
+      }
+    }
+    final keys = [for (final (k, _) in measures) k];
+    await db.update('fields', {'built_in': 0, 'hidden': 1, 'sort_order': 1000},
+        where: 'key NOT IN (${List.filled(keys.length, '?').join(',')})', whereArgs: keys);
+  }
 
   static const _createEntries = '''
     CREATE TABLE entries(
@@ -26,7 +70,7 @@ class BodyLogDb {
     final path = p.join(await getDatabasesPath(), 'body_log.db');
     final db = await openDatabase(
       path,
-      version: 2,
+      version: 5,
       onUpgrade: (db, from, to) async {
         if (from < 2) {
           // v1 stored a named slot per entry; map each slot to a representative time.
@@ -40,6 +84,7 @@ class BodyLogDb {
             FROM entries_v1''');
           await db.execute('DROP TABLE entries_v1');
         }
+        if (from < 5) await _syncMeasures(db, fresh: false);
       },
       onCreate: (db, version) async {
         await db.execute(_createEntries);
@@ -52,9 +97,7 @@ class BodyLogDb {
             sort_order INTEGER NOT NULL
           )''');
         await db.execute('CREATE TABLE settings(key TEXT PRIMARY KEY, value TEXT NOT NULL)');
-        for (final (i, (key, label)) in builtInFields.indexed) {
-          await db.insert('fields', {'key': key, 'label': label, 'built_in': 1, 'sort_order': i});
-        }
+        await _syncMeasures(db, fresh: true);
       },
     );
     return BodyLogDb._(db);
@@ -124,28 +167,9 @@ class BodyLogDb {
     ];
   }
 
-  /// Adds a custom field, or un-hides a previously removed one with the same name.
-  Future<void> addField(String label) async {
-    final key = 'c_${label.trim().toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '_')}';
-    final existing = await _db.query('fields', where: 'key = ?', whereArgs: [key]);
-    if (existing.isNotEmpty) {
-      await _db.update('fields', {'hidden': 0, 'label': label.trim()},
-          where: 'key = ?', whereArgs: [key]);
-      return;
-    }
-    final maxOrder = Sqflite.firstIntValue(
-            await _db.rawQuery('SELECT MAX(sort_order) FROM fields')) ??
-        0;
-    await _db.insert('fields', {
-      'key': key,
-      'label': label.trim(),
-      'built_in': 0,
-      'sort_order': maxOrder + 1,
-    });
-  }
-
-  Future<void> hideField(String key) => _db.update('fields', {'hidden': 1},
-      where: 'key = ? AND built_in = 0', whereArgs: [key]);
+  /// Shows or hides a standard measurement.
+  Future<void> setFieldShown(String key, bool shown) => _db.update('fields', {'hidden': shown ? 0 : 1},
+      where: 'key = ? AND built_in = 1', whereArgs: [key]);
 
   // Settings
 

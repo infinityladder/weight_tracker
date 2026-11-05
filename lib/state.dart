@@ -17,6 +17,8 @@ class AppData {
     required this.goal,
     required this.unitSystem,
     this.window = WeighWindow.defaultWindow,
+    this.startDate,
+    this.body = BodyType.male,
   });
 
   /// Newest first.
@@ -28,9 +30,18 @@ class AppData {
   /// Weights logged inside this window are the main record.
   final WeighWindow window;
 
+  /// Chosen starting point for "since start" and goals; null = first weigh-in.
+  final DateTime? startDate;
+
+  /// Figure drawn on the home screen.
+  final BodyType body;
+
   Units get units => Units(unitSystem);
 
   List<MeasureField> get visibleFields => fields.where((f) => !f.hidden).toList();
+
+  /// The standard measurements, shown or not, in body order.
+  List<MeasureField> get standardFields => fields.where((f) => f.builtIn).toList();
 
   /// The main record, newest first: per date, the earliest weight logged
   /// inside the main window. Every other weight is a note.
@@ -49,6 +60,16 @@ class AppData {
 
   Entry? get latestMain => mainWeights.firstOrNull;
   Entry? get firstMain => mainWeights.lastOrNull;
+
+  /// The starting weigh-in: the first main weigh-in on or after [startDate].
+  Entry? get startMain {
+    final d = startDate;
+    if (d == null) return firstMain;
+    return mainWeights.reversed.where((e) => !e.date.isBefore(d)).firstOrNull ?? firstMain;
+  }
+
+  /// Dates that have a main weigh-in.
+  late final Set<DateTime> mainDates = {for (final e in mainWeights) e.date};
 
   Entry? entryAt(DateTime date, int minutes) {
     final d = dateOnly(date);
@@ -71,18 +92,27 @@ class AppData {
   String labelFor(String key) =>
       fields.where((f) => f.key == key).firstOrNull?.label ?? key;
 
-  AppData copyWith({UnitSystem? unitSystem, WeighWindow? window}) => AppData(
+  /// Most recent value logged for a measurement field, in cm.
+  double? latestMeasurement(String key) =>
+      entries.where((e) => e.measurements.containsKey(key)).firstOrNull?.measurements[key];
+
+  AppData copyWith({UnitSystem? unitSystem, WeighWindow? window, BodyType? body}) => AppData(
         entries: entries,
         fields: fields,
         goal: goal,
         unitSystem: unitSystem ?? this.unitSystem,
         window: window ?? this.window,
+        startDate: startDate,
+        body: body ?? this.body,
       );
 }
 
 Future<AppData> loadAppData(BodyLogDb db) async {
   final goalJson = await db.setting('goal');
+  final start = await db.setting('start_date');
   return AppData(
+    startDate: start == null ? null : DateTime.tryParse(start),
+    body: (await db.setting('body')) == 'female' ? BodyType.female : BodyType.male,
     entries: await db.entries(),
     fields: await db.fields(),
     goal: goalJson == null ? null : Goal.fromJson(jsonDecode(goalJson) as Map<String, dynamic>),
@@ -125,20 +155,42 @@ class AppController extends Notifier<AppData> {
     await _db.setSetting('window', window.encode());
   }
 
-  Future<void> addField(String label) async {
-    await _db.addField(label);
+  Future<void> setBody(BodyType body) async {
+    state = state.copyWith(body: body);
+    await _db.setSetting('body', body.name);
+  }
+
+  Future<void> setFieldShown(String key, bool shown) async {
+    await _db.setFieldShown(key, shown);
     await _reload();
   }
 
-  Future<void> removeField(String key) async {
-    await _db.hideField(key);
+  /// Sets the starting weigh-in ([date] null = first weigh-in). An existing
+  /// goal moves its start weight to match.
+  Future<void> setStartDate(DateTime? date) async {
+    await _db.setSetting('start_date', date == null ? null : dateKey(date));
+    final g = state.goal;
+    final start = AppData(
+      entries: state.entries,
+      fields: state.fields,
+      goal: g,
+      unitSystem: state.unitSystem,
+      window: state.window,
+      startDate: date,
+      body: state.body,
+    ).startMain;
+    if (g != null && start != null) {
+      final moved = Goal(targetWeightKg: g.targetWeightKg, targetDate: g.targetDate, startWeightKg: start.weightKg!);
+      await _db.setSetting('goal', jsonEncode(moved.toJson()));
+    }
     await _reload();
   }
 
-  /// Keeps the original start weight when editing; uses the latest main
-  /// weigh-in when setting a new goal.
+  /// Keeps the original start weight when editing. A new goal starts from the
+  /// chosen start weigh-in, or the latest main weigh-in when none is chosen.
   Future<void> setGoal(double targetKg, DateTime targetDate) async {
-    final start = state.goal?.startWeightKg ?? state.latestMain?.weightKg;
+    final start = state.goal?.startWeightKg ??
+        (state.startDate != null ? state.startMain : state.latestMain)?.weightKg;
     if (start == null) return;
     final goal = Goal(targetWeightKg: targetKg, targetDate: dateOnly(targetDate), startWeightKg: start);
     await _db.setSetting('goal', jsonEncode(goal.toJson()));

@@ -22,46 +22,6 @@ class _SettingsSheet extends ConsumerStatefulWidget {
 }
 
 class _SettingsSheetState extends ConsumerState<_SettingsSheet> {
-  final _newField = TextEditingController();
-
-  @override
-  void dispose() {
-    _newField.dispose();
-    super.dispose();
-  }
-
-  Future<void> _addField() async {
-    final name = _newField.text.trim();
-    if (name.isEmpty) return;
-    final taken = ref
-        .read(appProvider)
-        .visibleFields
-        .any((f) => f.label.toLowerCase() == name.toLowerCase());
-    if (taken) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('"$name" is already a field')));
-      return;
-    }
-    await ref.read(appProvider.notifier).addField(name);
-    _newField.clear();
-  }
-
-  Future<void> _removeField(String key, String name) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (d) => AlertDialog(
-        title: Text('Remove "$name"?'),
-        content: const Text('It will be hidden from logging and charts. Past values are kept '
-            'and still included in CSV exports. Add it again to bring it back.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(d, true), child: const Text('Remove')),
-        ],
-      ),
-    );
-    if (ok == true) await ref.read(appProvider.notifier).removeField(key);
-  }
-
   Widget _timeButton(int minutes, String caption, WeighWindow Function(int) update) {
     return InkWell(
       borderRadius: BorderRadius.circular(16),
@@ -122,43 +82,16 @@ class _SettingsSheetState extends ConsumerState<_SettingsSheet> {
               ],
             ),
             const SizedBox(height: 24),
-            Text('MEASUREMENT FIELDS', style: label(context)),
-            const SizedBox(height: 4),
-            for (final f in data.visibleFields)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(f.label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 17)),
-                trailing: f.builtIn
-                    ? Text('built in', style: TextStyle(color: scheme.onSurfaceVariant))
-                    : IconButton(
-                        tooltip: 'Remove field',
-                        icon: const Icon(Icons.remove_circle_outline, color: badRed),
-                        onPressed: () => _removeField(f.key, f.label),
-                      ),
-              ),
+            Text('BODY', style: label(context)),
             const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _newField,
-                    textCapitalization: TextCapitalization.sentences,
-                    decoration: const InputDecoration(labelText: 'New field (e.g. Chest, Neck, Arm)'),
-                    onSubmitted: (_) => _addField(),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                IconButton.filled(
-                  onPressed: _addField,
-                  icon: const Icon(Icons.add),
-                  style: IconButton.styleFrom(
-                    backgroundColor: brandOrange,
-                    minimumSize: const Size(58, 58),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  ),
-                ),
-              ],
-            ),
+            BodyTypePicker(data: data),
+            const SizedBox(height: 24),
+            Text('MEASUREMENTS', style: label(context)),
+            const SizedBox(height: 4),
+            Text('Pick what shows on your body. Switching one off keeps its past values.',
+                style: TextStyle(color: scheme.onSurfaceVariant)),
+            const SizedBox(height: 10),
+            MeasurePicker(data: data),
             const SizedBox(height: 24),
             Text('DATA', style: label(context)),
             const SizedBox(height: 8),
@@ -175,6 +108,83 @@ class _SettingsSheetState extends ConsumerState<_SettingsSheet> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Just the measurement picker, for quick access from the home screen.
+Future<void> showMeasurePickerSheet(BuildContext context) => showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => Consumer(
+        builder: (context, ref, _) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('MEASUREMENTS', style: display(30)),
+                const SizedBox(height: 4),
+                Text('Pick what shows on your body.',
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                const SizedBox(height: 14),
+                BodyTypePicker(data: ref.watch(appProvider)),
+                const SizedBox(height: 14),
+                MeasurePicker(data: ref.watch(appProvider)),
+                const SizedBox(height: 18),
+                FilledButton(onPressed: () => Navigator.pop(context), child: const Text('DONE')),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+/// Chips for the standard measurements; tap to show or hide one.
+class MeasurePicker extends ConsumerWidget {
+  const MeasurePicker({super.key, required this.data});
+
+  final AppData data;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final f in data.standardFields)
+          FilterChip(
+            label: Text(f.label.toUpperCase()),
+            selected: !f.hidden,
+            showCheckmark: true,
+            checkmarkColor: Colors.white,
+            labelStyle: display(17, weight: FontWeight.w700, color: f.hidden ? scheme.onSurface : Colors.white),
+            onSelected: (on) => ref.read(appProvider.notifier).setFieldShown(f.key, on),
+          ),
+      ],
+    );
+  }
+}
+
+/// Male / female figure toggle.
+class BodyTypePicker extends ConsumerWidget {
+  const BodyTypePicker({super.key, required this.data});
+
+  final AppData data;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return SegmentedButton<BodyType>(
+      showSelectedIcon: false,
+      segments: const [
+        ButtonSegment(value: BodyType.male, icon: Icon(Icons.male), label: Text('MALE')),
+        ButtonSegment(value: BodyType.female, icon: Icon(Icons.female), label: Text('FEMALE')),
+      ],
+      selected: {data.body},
+      onSelectionChanged: (s) => ref.read(appProvider.notifier).setBody(s.first),
     );
   }
 }

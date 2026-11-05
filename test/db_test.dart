@@ -27,12 +27,53 @@ void main() {
     await v1.insert('entries', {'date': '2026-10-01', 'slot': 'morning', 'weight_kg': 80.0, 'measurements': '{"waist":90.0}'});
     await v1.insert('entries', {'date': '2026-10-01', 'slot': 'afterLunch', 'weight_kg': 80.8});
     await v1.insert('entries', {'date': '2026-10-01', 'slot': 'afterDinner', 'weight_kg': 81.2});
+    // A custom field that later becomes a default part, hidden by the user.
+    await v1.insert('fields', {'key': 'c_chest', 'label': 'Chest', 'built_in': 0, 'hidden': 1, 'sort_order': 3});
     await v1.close();
 
     final db = await BodyLogDb.open();
     final entries = await db.entries();
     expect([for (final e in entries) (e.minutes, e.weightKg)], [(1140, 81.2), (780, 80.8), (480, 80.0)]);
     expect(entries.last.measurements, {'waist': 90.0});
+
+    // Standard measures are added; the existing Chest keeps the visibility the user chose.
+    final fields = await db.fields();
+    expect(fields.where((f) => f.label == 'Chest').map((f) => (f.key, f.hidden)), [('c_chest', true)]);
+    expect(fields.where((f) => f.builtIn).map((f) => f.label), [for (final (_, l) in BodyLogDb.measures) l]);
+  });
+
+  test('v4 fields become the standard list; non-standard ones are hidden, values kept', () async {
+    final v4 = await openDatabase(path, version: 4, onCreate: (db, _) async {
+      await db.execute('''CREATE TABLE entries(id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL,
+          minutes INTEGER NOT NULL, weight_kg REAL, measurements TEXT NOT NULL DEFAULT '{}', UNIQUE(date, minutes))''');
+      await db.execute('''CREATE TABLE fields(key TEXT PRIMARY KEY, label TEXT NOT NULL, built_in INTEGER NOT NULL,
+          hidden INTEGER NOT NULL DEFAULT 0, sort_order INTEGER NOT NULL)''');
+      await db.execute('CREATE TABLE settings(key TEXT PRIMARY KEY, value TEXT NOT NULL)');
+      await db.insert('fields', {'key': 'waist', 'label': 'Waist', 'built_in': 1, 'sort_order': 0});
+      await db.insert('fields', {'key': 'c_shoulder', 'label': 'Shoulder', 'built_in': 0, 'sort_order': 1});
+      await db.insert('fields', {'key': 'c_mood', 'label': 'Mood', 'built_in': 0, 'sort_order': 2});
+      await db.insert('entries', {'date': '2026-10-01', 'minutes': 480, 'measurements': '{"c_mood":3.0}'});
+    });
+    await v4.close();
+
+    final db = await BodyLogDb.open();
+    final fields = {for (final f in await db.fields()) f.key: f};
+    expect((fields['waist']!.hidden, fields['c_shoulder']!.label, fields['c_shoulder']!.hidden), (false, 'Shoulders', false));
+    expect(fields['c_l_calf']!.hidden, isTrue); // new standard measures start switched off
+    expect((fields['c_mood']!.builtIn, fields['c_mood']!.hidden), (false, true));
+    expect((await db.entries()).single.measurements, {'c_mood': 3.0});
+
+    await db.setFieldShown('c_l_calf', true);
+    await db.setFieldShown('c_mood', true); // not standard: stays hidden
+    final after = {for (final f in await db.fields()) f.key: f};
+    expect((after['c_l_calf']!.hidden, after['c_mood']!.hidden), (false, true));
+  });
+
+  test('fresh install has the standard list with a few shown', () async {
+    final db = await BodyLogDb.open();
+    final fields = await db.fields();
+    expect(fields.map((f) => f.label), [for (final (_, l) in BodyLogDb.measures) l]);
+    expect(fields.where((f) => !f.hidden).map((f) => f.key).toSet(), BodyLogDb.shownByDefault);
   });
 
   test('save updates by id, by matching date+time, or inserts', () async {

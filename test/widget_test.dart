@@ -1,3 +1,5 @@
+import 'package:body_log/body_map.dart';
+import 'package:body_log/db.dart';
 import 'package:body_log/models.dart';
 import 'package:body_log/state.dart';
 import 'package:body_log/units.dart';
@@ -20,7 +22,7 @@ void main() {
 
   test('unit conversion round-trips', () {
     const u = Units(UnitSystem.imperial);
-    expect(u.fmtWeight(u.weightIn(160)), '160.0');
+    expect(u.fmtWeight(u.weightIn(160)), '160.00');
     expect(u.fmtLength(u.lengthIn(32.5)), '32.5');
     expect(parseNumber('72,4'), 72.4);
     expect(parseNumber(''), isNull);
@@ -73,6 +75,44 @@ void main() {
     expect(shifted.mainWeights.map((e) => e.id), [2]);
   });
 
+  test('start weigh-in is the first main weigh-in on or after the chosen date', () {
+    final entries = [
+      Entry(id: 1, date: DateTime(2026, 1, 1), minutes: 420, weightKg: 82),
+      Entry(id: 2, date: DateTime(2026, 1, 5), minutes: 420, weightKg: 81),
+      Entry(id: 3, date: DateTime(2026, 1, 9), minutes: 420, weightKg: 80),
+    ]..sort(Entry.newestFirst);
+    AppData at(DateTime? d) =>
+        AppData(entries: entries, fields: const [], goal: null, unitSystem: UnitSystem.metric, startDate: d);
+    expect(at(null).startMain!.id, 1);
+    expect(at(DateTime(2026, 1, 5)).startMain!.id, 2);
+    expect(at(DateTime(2026, 1, 6)).startMain!.id, 3); // that day's entry was deleted
+    expect(at(DateTime(2026, 2, 1)).startMain!.id, 1); // nothing after: fall back to first
+    expect(at(null).mainDates, {DateTime(2026, 1, 1), DateTime(2026, 1, 5), DateTime(2026, 1, 9)});
+  });
+
+  test('body parts match by name and side', () {
+    MeasureField f(String label) => MeasureField(key: label, label: label, builtIn: false, hidden: false, sortOrder: 0);
+    final lThigh = partFor(f('L-Thigh'))!, rThigh = partFor(f('R-Thigh'))!;
+    final lKnee = partFor(f('L-Above Knee'))!, rKnee = partFor(f('right above-knee'))!;
+    expect((lThigh.right, rThigh.right, lKnee.right, rKnee.right), (false, true, false, true));
+    expect(lKnee.y, greaterThan(lThigh.y));
+    expect(lKnee.y, lessThan(partFor(f('Knee'))!.y));
+    expect(partFor(f('Mood')), isNull);
+    // Every standard measure has a place on the body, on the side its name says.
+    for (final (_, label) in BodyLogDb.measures) {
+      for (final body in BodyType.values) {
+        final part = partFor(f(label), body);
+        expect(part, isNotNull, reason: label);
+        if (label.startsWith('L-')) expect(part!.right, isFalse, reason: label);
+        if (label.startsWith('R-')) expect(part!.right, isTrue, reason: label);
+      }
+    }
+    // The female waist is narrower and hips wider than the male ones.
+    double width(BodyPart p) => p.x2 - p.x1;
+    expect(width(partFor(f('Waist'), BodyType.female)!), lessThan(width(partFor(f('Waist'))!)));
+    expect(width(partFor(f('Hips'), BodyType.female)!), greaterThan(width(partFor(f('Hips'))!)));
+  });
+
   test('csv export has time and main flag, quotes labels, includes hidden fields', () {
     final data = AppData(
       entries: [
@@ -89,8 +129,8 @@ void main() {
     expect(
       buildCsv(data),
       'date,time,main_weigh_in,weight_kg,Waist (cm),"Arm, left (cm)"\n'
-      '2026-01-01,07:05,yes,80.0,90.0,30.0\n'
-      '2026-01-01,18:00,no,81.0,,\n',
+      '2026-01-01,07:05,yes,80.00,90.0,30.0\n'
+      '2026-01-01,18:00,no,81.00,,\n',
     );
   });
 }

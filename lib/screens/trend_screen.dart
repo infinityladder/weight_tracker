@@ -5,35 +5,235 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../models.dart';
 import '../state.dart';
 import '../theme.dart';
 import '../widgets.dart';
 import 'goal_sheet.dart';
+import 'measure_sheet.dart';
+import 'quick_entry_sheet.dart';
+import 'start_sheet.dart';
 
-class DashboardScreen extends ConsumerWidget {
-  const DashboardScreen({super.key, required this.onLog});
+/// Trend chart (opening on [initialMetric]) followed by the analysis cards
+/// for the chosen metric.
+class TrendScreen extends ConsumerStatefulWidget {
+  const TrendScreen({super.key, this.initialMetric = 'weight'});
 
-  final VoidCallback onLog;
+  /// 'weight' or a field key.
+  final String initialMetric;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TrendScreen> createState() => _TrendScreenState();
+}
+
+class _TrendScreenState extends ConsumerState<TrendScreen> {
+  late String _metric = widget.initialMetric;
+
+  @override
+  Widget build(BuildContext context) {
     final data = ref.watch(appProvider);
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-      children: [
-        _Scoreboard(data: data, onLog: onLog),
-        _TodaysNotes(data: data),
-        const SizedBox(height: 16),
-        _GoalCard(data: data),
-        const SizedBox(height: 16),
-        _TrendCard(data: data),
-      ],
+    final field = data.visibleFields.where((f) => f.key == _metric).firstOrNull;
+    if (field == null) _metric = 'weight';
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('TREND'),
+        actions: [
+          TextButton.icon(
+            onPressed: () => field == null ? showQuickEntry(context) : showMeasureSheet(context, field),
+            icon: const Icon(Icons.add),
+            label: Text(
+              field == null ? 'LOG WEIGHT' : 'LOG ${field.label.toUpperCase()}',
+              style: display(17, color: brandOrange),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+        children: [
+          TrendCard(data: data, metric: _metric, onMetric: (m) => setState(() => _metric = m), chartHeight: 280),
+          const SizedBox(height: 16),
+          if (field == null) ...[
+            Scoreboard(data: data, onLog: () => showQuickEntry(context)),
+            TodaysNotes(data: data),
+            const SizedBox(height: 16),
+            GoalCard(data: data),
+            const SizedBox(height: 16),
+            StatsCard(data: data),
+          ] else
+            PartCard(data: data, field: field),
+        ],
+      ),
     );
   }
 }
 
-class _Scoreboard extends StatelessWidget {
-  const _Scoreboard({required this.data, required this.onLog});
+/// Latest value, change since first and range for one measurement.
+class PartCard extends StatelessWidget {
+  const PartCard({super.key, required this.data, required this.field});
+
+  final AppData data;
+  final MeasureField field;
+
+  @override
+  Widget build(BuildContext context) {
+    final u = data.units;
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    // Newest first.
+    final logged = [
+      for (final e in data.entries)
+        if (e.measurements[field.key] != null) (e.date, u.lengthOut(e.measurements[field.key]!)),
+    ];
+    if (logged.isEmpty) {
+      return SportCard(
+        title: field.label,
+        child: Text('Nothing logged yet', style: TextStyle(color: muted)),
+      );
+    }
+    final values = [for (final (_, v) in logged) v];
+    final delta = values.first - values.last;
+    final flat = delta.abs() < 0.05;
+    final color = flat ? muted : (delta < 0 ? goodGreen : badRed);
+
+    return SportCard(
+      title: field.label,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(values.first.toStringAsFixed(1), style: display(64, color: brandOrange, spacing: -1)),
+              const SizedBox(width: 4),
+              Text(u.length.toUpperCase(), style: display(22, color: muted)),
+              const Spacer(),
+              Text(DateFormat('EEE d MMM').format(logged.first.$1).toUpperCase(), style: label(context)),
+            ],
+          ),
+          if (logged.length > 1)
+            Row(
+              children: [
+                Icon(
+                  flat ? Icons.remove : (delta < 0 ? Icons.arrow_downward : Icons.arrow_upward),
+                  size: 18,
+                  color: color,
+                ),
+                const SizedBox(width: 2),
+                Text('${delta.abs().toStringAsFixed(1)} ${u.length}', style: display(19, color: color)),
+                Text('  since ${DateFormat('d MMM yyyy').format(logged.last.$1)}', style: label(context)),
+              ],
+            ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              _Stat(value: values.reduce(math.min).toStringAsFixed(1), caption: 'lowest'),
+              _Stat(value: values.reduce(math.max).toStringAsFixed(1), caption: 'highest'),
+              _Stat(value: values.last.toStringAsFixed(1), caption: 'first'),
+              _Stat(value: '${values.length}', caption: 'logged'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Weight summary plus latest value and change since first for each measurement.
+class StatsCard extends StatelessWidget {
+  const StatsCard({super.key, required this.data});
+
+  final AppData data;
+
+  @override
+  Widget build(BuildContext context) {
+    final u = data.units;
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    final weights = [for (final e in data.mainWeights) e.weightKg!];
+    final weekAgo = dateOnly(DateTime.now()).subtract(const Duration(days: 6));
+    final lastWeek = [
+      for (final e in data.mainWeights)
+        if (!e.date.isBefore(weekAgo)) e.weightKg!,
+    ];
+
+    Widget change(double delta, String unit) {
+      final flat = delta.abs() < 0.05;
+      final color = flat ? muted : (delta < 0 ? goodGreen : badRed);
+      return Text(
+        '${flat ? '±' : (delta < 0 ? '−' : '+')}${delta.abs().toStringAsFixed(1)} $unit',
+        style: display(20, color: color),
+      );
+    }
+
+    final rows = <Widget>[];
+    for (final f in data.visibleFields) {
+      final values = [
+        for (final e in data.entries)
+          if (e.measurements[f.key] != null) e.measurements[f.key]!,
+      ];
+      if (values.isEmpty) continue;
+      rows.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(f.label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              ),
+              Text('${u.fmtLength(values.first)} ${u.length}', style: display(22, weight: FontWeight.w800)),
+              const SizedBox(width: 14),
+              SizedBox(
+                width: 86,
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: change(u.lengthOut(values.first) - u.lengthOut(values.last), u.length),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return SportCard(
+      title: 'Numbers',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (weights.isEmpty)
+            Text('No main weigh-ins yet', style: TextStyle(color: muted))
+          else
+            Row(
+              children: [
+                _Stat(
+                  value: lastWeek.isEmpty ? '—' : u.fmtWeight(lastWeek.reduce((a, b) => a + b) / lastWeek.length),
+                  caption: '7-day avg',
+                ),
+                _Stat(value: u.fmtWeight(weights.reduce(math.min)), caption: 'lowest'),
+                _Stat(value: u.fmtWeight(weights.reduce(math.max)), caption: 'highest'),
+                _Stat(value: '${weights.length}', caption: 'weigh-ins'),
+              ],
+            ),
+          if (rows.isNotEmpty) ...[
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Expanded(child: Text('MEASUREMENTS', style: label(context))),
+                Text('SINCE FIRST', style: label(context)),
+              ],
+            ),
+            const SizedBox(height: 4),
+            ...rows,
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class Scoreboard extends StatelessWidget {
+  const Scoreboard({super.key, required this.data, required this.onLog});
 
   final AppData data;
   final VoidCallback onLog;
@@ -42,16 +242,14 @@ class _Scoreboard extends StatelessWidget {
   Widget build(BuildContext context) {
     final u = data.units;
     final latest = data.latestMain;
-    final first = data.firstMain;
+    final first = data.startMain;
     final white70 = Colors.white.withValues(alpha: 0.8);
 
     return Container(
       decoration: BoxDecoration(
         gradient: brandGradient,
         borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(color: brandOrange.withValues(alpha: 0.25), blurRadius: 18, offset: const Offset(0, 6)),
-        ],
+        boxShadow: [BoxShadow(color: brandOrange.withValues(alpha: 0.25), blurRadius: 18, offset: const Offset(0, 6))],
       ),
       padding: const EdgeInsets.fromLTRB(22, 18, 22, 20),
       child: latest == null
@@ -62,8 +260,10 @@ class _Scoreboard extends StatelessWidget {
                 const SizedBox(height: 14),
                 Text('NO WEIGH-IN YET', style: display(44, color: Colors.white)),
                 const SizedBox(height: 6),
-                Text('Log a weight inside your main weigh-in window to start your scoreboard.',
-                    style: TextStyle(color: white70, fontSize: 15)),
+                Text(
+                  'Log a weight inside your main weigh-in window to start your scoreboard.',
+                  style: TextStyle(color: white70, fontSize: 15),
+                ),
                 const SizedBox(height: 14),
                 OutlinedButton.icon(
                   onPressed: onLog,
@@ -82,11 +282,14 @@ class _Scoreboard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Expanded(child: Text('MAIN WEIGH-IN', style: label(context, color: white70))),
+                    Expanded(
+                      child: Text('MAIN WEIGH-IN', style: label(context, color: white70)),
+                    ),
                     Text(
-                        '${DateFormat('EEE d MMM').format(latest.date)}  ${timeLabel(context, latest.minutes)}'
-                            .toUpperCase(),
-                        style: label(context, color: white70)),
+                      '${DateFormat('EEE d MMM').format(latest.date)}  ${timeLabel(context, latest.minutes)}'
+                          .toUpperCase(),
+                      style: label(context, color: white70),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 4),
@@ -94,18 +297,20 @@ class _Scoreboard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.baseline,
                   textBaseline: TextBaseline.alphabetic,
                   children: [
-                    Text(u.fmtWeight(latest.weightKg!),
-                        style: display(108, color: Colors.white, spacing: -2)),
+                    Text(u.fmtWeight(latest.weightKg!), style: display(108, color: Colors.white, spacing: -2)),
                     const SizedBox(width: 6),
                     Text(u.weight.toUpperCase(), style: display(30, color: white70)),
                   ],
                 ),
-                if (first != null && first.id != latest.id) ...[
+                if (first != null && data.mainWeights.length > 1) ...[
                   const SizedBox(height: 4),
-                  _ChangePill(
-                    deltaKg: latest.weightKg! - first.weightKg!,
-                    since: first.date,
-                    unitsText: (kg) => '${u.fmtWeight(kg.abs())} ${u.weight}',
+                  GestureDetector(
+                    onTap: () => showStartSheet(context),
+                    child: _ChangePill(
+                      deltaKg: latest.weightKg! - first.weightKg!,
+                      since: first.date,
+                      unitsText: (kg) => '${u.fmtWeight(kg.abs())} ${u.weight}',
+                    ),
                   ),
                 ],
                 const SizedBox(height: 14),
@@ -141,16 +346,20 @@ class _ChangePill extends StatelessWidget {
           Icon(icon, size: 18, color: color),
           const SizedBox(width: 4),
           Text(unitsText(deltaKg), style: display(19, color: color)),
-          Text('  since ${DateFormat('d MMM yyyy').format(since)}',
-              style: const TextStyle(color: Colors.black54, fontSize: 13, fontWeight: FontWeight.w600)),
+          Text(
+            '  since ${DateFormat('d MMM yyyy').format(since)}',
+            style: const TextStyle(color: Colors.black54, fontSize: 13, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(width: 4),
+          const Icon(Icons.edit_calendar, size: 15, color: Colors.black54),
         ],
       ),
     );
   }
 }
 
-class _TodaysNotes extends StatelessWidget {
-  const _TodaysNotes({required this.data});
+class TodaysNotes extends StatelessWidget {
+  const TodaysNotes({super.key, required this.data});
 
   final AppData data;
 
@@ -169,9 +378,8 @@ class _TodaysNotes extends StatelessWidget {
           Text(
             [
               for (final n in notes)
-                '${timeLabel(context, n.minutes)}  ${data.units.fmtWeight(n.weightKg!)} ${data.units.weight}'
-            ]
-                .join('   ·   '),
+                '${timeLabel(context, n.minutes)}  ${data.units.fmtWeight(n.weightKg!)} ${data.units.weight}',
+            ].join('   ·   '),
             style: TextStyle(color: muted, fontWeight: FontWeight.w600),
           ),
         ],
@@ -180,8 +388,8 @@ class _TodaysNotes extends StatelessWidget {
   }
 }
 
-class _GoalCard extends StatelessWidget {
-  const _GoalCard({required this.data});
+class GoalCard extends StatelessWidget {
+  const GoalCard({super.key, required this.data});
 
   final AppData data;
 
@@ -239,8 +447,7 @@ class _GoalCard extends StatelessWidget {
               const SizedBox(width: 4),
               Text(u.weight.toUpperCase(), style: display(22, color: Theme.of(context).colorScheme.onSurfaceVariant)),
               const Spacer(),
-              Text('BY ${DateFormat('d MMM yyyy').format(goal.targetDate).toUpperCase()}',
-                  style: label(context)),
+              Text('BY ${DateFormat('d MMM yyyy').format(goal.targetDate).toUpperCase()}', style: label(context)),
             ],
           ),
           const SizedBox(height: 12),
@@ -302,37 +509,42 @@ class _Stat extends StatelessWidget {
     return Expanded(
       child: Column(
         children: [
-          FittedBox(child: Text(value, style: display(30, color: brandOrange))),
+          FittedBox(
+            child: Text(value, style: display(30, color: brandOrange)),
+          ),
           const SizedBox(height: 2),
-          Text(caption,
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+          Text(
+            caption,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+          ),
         ],
       ),
     );
   }
 }
 
-class _TrendCard extends StatefulWidget {
-  const _TrendCard({required this.data});
+class TrendCard extends StatelessWidget {
+  const TrendCard({
+    super.key,
+    required this.data,
+    required this.metric,
+    required this.onMetric,
+    this.chartHeight = 220,
+  });
 
   final AppData data;
 
-  @override
-  State<_TrendCard> createState() => _TrendCardState();
-}
-
-class _TrendCardState extends State<_TrendCard> {
   /// 'weight' or a field key.
-  String _metric = 'weight';
+  final String metric;
+  final ValueChanged<String> onMetric;
+  final double chartHeight;
 
   @override
   Widget build(BuildContext context) {
-    final data = widget.data;
     final u = data.units;
     final fields = data.visibleFields;
-    if (_metric != 'weight' && !fields.any((f) => f.key == _metric)) _metric = 'weight';
-    final isWeight = _metric == 'weight';
+    final isWeight = metric == 'weight';
 
     // One point per date, oldest first. Weight: main weigh-ins only.
     // Measurements: the earliest entry that has a value that day.
@@ -341,7 +553,7 @@ class _TrendCardState extends State<_TrendCard> {
       if (isWeight) {
         if (data.isMain(e)) byDate[e.date] = u.weightOut(e.weightKg!);
       } else {
-        final v = e.measurements[_metric];
+        final v = e.measurements[metric];
         if (v != null) byDate.putIfAbsent(e.date, () => u.lengthOut(v));
       }
     }
@@ -359,14 +571,19 @@ class _TrendCardState extends State<_TrendCard> {
                 for (final (key, name) in [('weight', 'Weight'), for (final f in fields) (f.key, f.label)])
                   Padding(
                     padding: const EdgeInsets.only(right: 8),
-                    child: ChoiceChip(
-                      label: Text(name.toUpperCase()),
-                      selected: _metric == key,
-                      showCheckmark: false,
-                      labelStyle: display(17,
+                    child: _ScrollIntoView(
+                      active: metric == key,
+                      child: ChoiceChip(
+                        label: Text(name.toUpperCase()),
+                        selected: metric == key,
+                        showCheckmark: false,
+                        labelStyle: display(
+                          17,
                           weight: FontWeight.w700,
-                          color: _metric == key ? Colors.white : Theme.of(context).colorScheme.onSurface),
-                      onSelected: (_) => setState(() => _metric = key),
+                          color: metric == key ? Colors.white : Theme.of(context).colorScheme.onSurface,
+                        ),
+                        onSelected: (_) => onMetric(key),
+                      ),
                     ),
                   ),
               ],
@@ -374,13 +591,20 @@ class _TrendCardState extends State<_TrendCard> {
           ),
           const SizedBox(height: 16),
           SizedBox(
-            height: 220,
+            height: chartHeight,
             child: byDate.isEmpty
                 ? Center(
-                    child: Text('No ${isWeight ? 'main weigh-ins' : data.labelFor(_metric).toLowerCase()} logged yet',
-                        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                    child: Text(
+                      'No ${isWeight ? 'main weigh-ins' : data.labelFor(metric).toLowerCase()} logged yet',
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    ),
                   )
-                : _Chart(points: byDate, goalY: goalY, unit: isWeight ? u.weight : u.length),
+                : _Chart(
+                    points: byDate,
+                    goalY: goalY,
+                    unit: isWeight ? u.weight : u.length,
+                    decimals: isWeight ? 2 : 1,
+                  ),
           ),
         ],
       ),
@@ -389,7 +613,9 @@ class _TrendCardState extends State<_TrendCard> {
 }
 
 class _Chart extends StatelessWidget {
-  const _Chart({required this.points, required this.goalY, required this.unit});
+  const _Chart({required this.points, required this.goalY, required this.unit, required this.decimals});
+
+  final int decimals;
 
   final Map<DateTime, double> points;
   final double? goalY;
@@ -448,34 +674,35 @@ class _Chart extends StatelessWidget {
                   ? const SizedBox.shrink()
                   : Padding(
                       padding: const EdgeInsets.only(top: 6),
-                      child: Text(DateFormat('d MMM').format(origin.add(Duration(days: v.round()))),
-                          style: axisStyle),
+                      child: Text(DateFormat('d MMM').format(origin.add(Duration(days: v.round()))), style: axisStyle),
                     ),
             ),
           ),
         ),
-        extraLinesData: ExtraLinesData(horizontalLines: [
-          if (goalY != null)
-            HorizontalLine(
-              y: goalY!,
-              color: brandOrange.withValues(alpha: 0.8),
-              strokeWidth: 2,
-              dashArray: [8, 6],
-              label: HorizontalLineLabel(
-                show: true,
-                alignment: Alignment.topRight,
-                labelResolver: (_) => 'GOAL',
-                style: display(14, color: brandOrange),
+        extraLinesData: ExtraLinesData(
+          horizontalLines: [
+            if (goalY != null)
+              HorizontalLine(
+                y: goalY!,
+                color: brandOrange.withValues(alpha: 0.8),
+                strokeWidth: 2,
+                dashArray: [8, 6],
+                label: HorizontalLineLabel(
+                  show: true,
+                  alignment: Alignment.topRight,
+                  labelResolver: (_) => 'GOAL',
+                  style: display(14, color: brandOrange),
+                ),
               ),
-            ),
-        ]),
+          ],
+        ),
         lineTouchData: LineTouchData(
           touchTooltipData: LineTouchTooltipData(
             getTooltipColor: (_) => scheme.inverseSurface,
             getTooltipItems: (spots) => [
               for (final s in spots)
                 LineTooltipItem(
-                  '${s.y.toStringAsFixed(1)} $unit\n${DateFormat('d MMM').format(origin.add(Duration(days: s.x.round())))}',
+                  '${s.y.toStringAsFixed(decimals)} $unit\n${DateFormat('d MMM').format(origin.add(Duration(days: s.x.round())))}',
                   TextStyle(color: scheme.onInverseSurface, fontWeight: FontWeight.w700),
                 ),
             ],
@@ -512,4 +739,31 @@ class _Chart extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Scrolls its child into view when it first appears active, e.g. the chip
+/// of the metric the screen was opened on.
+class _ScrollIntoView extends StatefulWidget {
+  const _ScrollIntoView({required this.active, required this.child});
+
+  final bool active;
+  final Widget child;
+
+  @override
+  State<_ScrollIntoView> createState() => _ScrollIntoViewState();
+}
+
+class _ScrollIntoViewState extends State<_ScrollIntoView> {
+  @override
+  void initState() {
+    super.initState();
+    if (widget.active) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) Scrollable.ensureVisible(context, alignment: 0.5);
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }

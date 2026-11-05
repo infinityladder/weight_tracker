@@ -75,9 +75,12 @@ class MeasureField {
 
   final String key;
   final String label;
+
+  /// One of the standard measurements users can switch on. Fields from older
+  /// versions that aren't standard stay hidden but keep their values.
   final bool builtIn;
 
-  /// Removed custom fields are hidden, so their past values are kept.
+  /// Switched off; past values are kept.
   final bool hidden;
   final int sortOrder;
 }
@@ -138,3 +141,6 @@ class GoalProgress {
   double? get perWeekKg =>
       daysLeft > 0 && !reached ? (target - currentKg) / (daysLeft / 7) : null;
 }
+
+/// Which figure the body map draws.
+enum BodyType { male, female }
