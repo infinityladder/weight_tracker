@@ -6,6 +6,7 @@ import '../state.dart';
 import '../theme.dart';
 import '../units.dart';
 import '../widgets.dart';
+import 'data_transfer.dart';
 
 Future<void> showSettingsSheet(BuildContext context) => showModalBottomSheet(
   context: context,
@@ -22,6 +23,17 @@ class _SettingsSheet extends ConsumerStatefulWidget {
 }
 
 class _SettingsSheetState extends ConsumerState<_SettingsSheet> {
+  Widget _dataButton(IconData icon, String text, VoidCallback onPressed) => OutlinedButton.icon(
+    onPressed: onPressed,
+    icon: Icon(icon),
+    label: Text(text),
+    style: OutlinedButton.styleFrom(
+      minimumSize: const Size.fromHeight(52),
+      side: const BorderSide(color: brandOrange, width: 2),
+      textStyle: display(20, weight: FontWeight.w800),
+    ),
+  );
+
   Widget _timeButton(int minutes, String caption, WeighWindow Function(int) update) {
     return InkWell(
       borderRadius: BorderRadius.circular(16),
@@ -96,15 +108,12 @@ class _SettingsSheetState extends ConsumerState<_SettingsSheet> {
           const SizedBox(height: 24),
           Text('DATA', style: label(context)),
           const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: data.entries.isEmpty ? null : () => ref.read(appProvider.notifier).exportCsv(),
-            icon: const Icon(Icons.ios_share),
-            label: const Text('EXPORT CSV'),
-            style: OutlinedButton.styleFrom(
-              minimumSize: const Size.fromHeight(52),
-              side: const BorderSide(color: brandOrange, width: 2),
-              textStyle: display(20, weight: FontWeight.w800),
-            ),
+          Row(
+            children: [
+              Expanded(child: _dataButton(Icons.file_download_outlined, 'IMPORT', () => importData(context, ref))),
+              const SizedBox(width: 12),
+              Expanded(child: _dataButton(Icons.ios_share, 'EXPORT', () => exportData(context, ref))),
+            ],
           ),
         ],
       ),

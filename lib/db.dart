@@ -124,29 +124,35 @@ class BodyLogDb {
   /// Updates [e] by id when it has one, otherwise the entry at the same date +
   /// time, otherwise inserts. Moving an entry onto another entry's date + time
   /// replaces that other entry.
-  Future<void> saveEntry(Entry e) async {
+  Future<void> saveEntry(Entry e) => _db.transaction((txn) => _save(txn, e));
+
+  /// Saves many entries in one transaction, each as [saveEntry] would.
+  Future<void> saveEntries(Iterable<Entry> entries) => _db.transaction((txn) async {
+        for (final e in entries) {
+          await _save(txn, e);
+        }
+      });
+
+  static Future<void> _save(Transaction txn, Entry e) async {
     final values = {
       'date': dateKey(e.date),
       'minutes': e.minutes,
       'weight_kg': e.weightKg,
       'measurements': jsonEncode(e.measurements),
     };
-    await _db.transaction((txn) async {
-      if (e.id != null) {
-        await txn.delete('entries',
-            where: 'date = ? AND minutes = ? AND id != ?',
-            whereArgs: [values['date'], e.minutes, e.id]);
-        await txn.update('entries', values, where: 'id = ?', whereArgs: [e.id]);
-        return;
-      }
-      final updated = await txn.update(
-        'entries',
-        values,
-        where: 'date = ? AND minutes = ?',
-        whereArgs: [values['date'], e.minutes],
-      );
-      if (updated == 0) await txn.insert('entries', values);
-    });
+    if (e.id != null) {
+      await txn.delete('entries',
+          where: 'date = ? AND minutes = ? AND id != ?', whereArgs: [values['date'], e.minutes, e.id]);
+      await txn.update('entries', values, where: 'id = ?', whereArgs: [e.id]);
+      return;
+    }
+    final updated = await txn.update(
+      'entries',
+      values,
+      where: 'date = ? AND minutes = ?',
+      whereArgs: [values['date'], e.minutes],
+    );
+    if (updated == 0) await txn.insert('entries', values);
   }
 
   Future<void> deleteEntry(int id) => _db.delete('entries', where: 'id = ?', whereArgs: [id]);

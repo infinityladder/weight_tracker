@@ -92,7 +92,8 @@ class PartCard extends StatelessWidget {
       );
     }
     final values = [for (final (_, v) in logged) v];
-    final delta = values.first - values.last;
+    final (startDate, startCm) = data.measurementAtStart(field.key)!;
+    final delta = values.first - u.lengthOut(startCm);
     final flat = delta.abs() < 0.05;
     final color = flat ? muted : (delta < 0 ? goodGreen : badRed);
 
@@ -113,7 +114,7 @@ class PartCard extends StatelessWidget {
             ],
           ),
           if (logged.length > 1)
-            Row(
+            _SinceRow(
               children: [
                 Icon(
                   flat ? Icons.remove : (delta < 0 ? Icons.arrow_downward : Icons.arrow_upward),
@@ -122,7 +123,9 @@ class PartCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 2),
                 Text('${delta.abs().toStringAsFixed(1)} ${u.length}', style: display(19, color: color)),
-                Text('  since ${DateFormat('d MMM yyyy').format(logged.last.$1)}', style: label(context)),
+                Text('  since ${DateFormat('d MMM yyyy').format(startDate)}', style: label(context)),
+                const SizedBox(width: 4),
+                Icon(Icons.edit_calendar, size: 16, color: muted),
               ],
             ),
           const SizedBox(height: 14),
@@ -130,7 +133,7 @@ class PartCard extends StatelessWidget {
             children: [
               _Stat(value: values.reduce(math.min).toStringAsFixed(1), caption: 'lowest'),
               _Stat(value: values.reduce(math.max).toStringAsFixed(1), caption: 'highest'),
-              _Stat(value: values.last.toStringAsFixed(1), caption: 'first'),
+              _Stat(value: u.lengthOut(startCm).toStringAsFixed(1), caption: 'at start'),
               _Stat(value: '${values.length}', caption: 'logged'),
             ],
           ),
@@ -140,7 +143,7 @@ class PartCard extends StatelessWidget {
   }
 }
 
-/// Weight summary plus latest value and change since first for each measurement.
+/// Weight summary plus latest value and change since the start date for each measurement.
 class StatsCard extends StatelessWidget {
   const StatsCard({super.key, required this.data});
 
@@ -168,11 +171,9 @@ class StatsCard extends StatelessWidget {
 
     final rows = <Widget>[];
     for (final f in data.visibleFields) {
-      final values = [
-        for (final e in data.entries)
-          if (e.measurements[f.key] != null) e.measurements[f.key]!,
-      ];
-      if (values.isEmpty) continue;
+      final latest = data.latestMeasurement(f.key);
+      final start = data.measurementAtStart(f.key);
+      if (latest == null || start == null) continue;
       rows.add(
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 6),
@@ -181,13 +182,13 @@ class StatsCard extends StatelessWidget {
               Expanded(
                 child: Text(f.label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
               ),
-              Text('${u.fmtLength(values.first)} ${u.length}', style: display(22, weight: FontWeight.w800)),
+              Text('${u.fmtLength(latest)} ${u.length}', style: display(22, weight: FontWeight.w800)),
               const SizedBox(width: 14),
               SizedBox(
                 width: 86,
                 child: Align(
                   alignment: Alignment.centerRight,
-                  child: change(u.lengthOut(values.first) - u.lengthOut(values.last), u.length),
+                  child: change(u.lengthOut(latest) - u.lengthOut(start.$2), u.length),
                 ),
               ),
             ],
@@ -220,7 +221,18 @@ class StatsCard extends StatelessWidget {
             Row(
               children: [
                 Expanded(child: Text('MEASUREMENTS', style: label(context))),
-                Text('SINCE FIRST', style: label(context)),
+                _SinceRow(
+                  children: [
+                    Text(
+                      data.startDay == null
+                          ? 'SINCE FIRST'
+                          : 'SINCE ${DateFormat('d MMM').format(data.startDay!).toUpperCase()}',
+                      style: label(context),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(Icons.edit_calendar, size: 16, color: muted),
+                  ],
+                ),
               ],
             ),
             const SizedBox(height: 4),
@@ -766,4 +778,23 @@ class _ScrollIntoViewState extends State<_ScrollIntoView> {
 
   @override
   Widget build(BuildContext context) => widget.child;
+}
+
+/// A "since [date]" row; tapping it opens the start date calendar.
+class _SinceRow extends StatelessWidget {
+  const _SinceRow({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => showStartSheet(context),
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(mainAxisSize: MainAxisSize.min, children: children),
+      ),
+    );
+  }
 }

@@ -6,6 +6,7 @@ import 'body_map.dart';
 import 'db.dart';
 import 'models.dart';
 import 'screens/trend_screen.dart';
+import 'screens/data_transfer.dart';
 import 'screens/history_screen.dart';
 import 'screens/log_screen.dart';
 import 'screens/measure_sheet.dart';
@@ -313,7 +314,28 @@ class ViewDataScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('DATA')),
+      appBar: AppBar(
+        title: const Text('DATA'),
+        actions: [
+          Consumer(
+            builder: (context, ref, _) => Row(
+              children: [
+                IconButton(
+                  tooltip: 'Import CSV',
+                  icon: const Icon(Icons.file_download_outlined),
+                  onPressed: () => importData(context, ref),
+                ),
+                IconButton(
+                  tooltip: 'Export CSV',
+                  icon: const Icon(Icons.ios_share),
+                  onPressed: () => exportData(context, ref),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 4),
+        ],
+      ),
       body: HistoryScreen(onEdit: (e) => openLog(context, editing: e)),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => openLog(context),

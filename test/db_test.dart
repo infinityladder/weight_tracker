@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:body_log/db.dart';
 import 'package:body_log/models.dart';
+import 'package:body_log/state.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -90,5 +92,30 @@ void main() {
     all = await db.entries();
     expect(all.length, 1);
     expect((all.single.minutes, all.single.weightKg), (420, 81.0));
+  });
+
+  test('import merges by date + time and switches on measurements it fills', () async {
+    final db = await BodyLogDb.open();
+    final d = DateTime(2026, 3, 1);
+    await db.saveEntry(Entry(date: d, minutes: 420, weightKg: 70, measurements: const {'waist': 80}));
+    final container = ProviderContainer(overrides: [
+      dbProvider.overrideWithValue(db),
+      initialDataProvider.overrideWithValue(await loadAppData(db)),
+    ]);
+    addTearDown(container.dispose);
+
+    final summary = await container.read(appProvider.notifier).importCsv(
+          'date,time,weight_kg,Waist (cm),L-Calf (cm)\r\n'
+          '2026-03-01,07:00,69.5,,36\r\n' // same time: weight replaced, waist kept, calf added
+          '2026-03-02,07:10,69.2,79,\r\n',
+        );
+    expect((summary.added, summary.updated), (1, 1));
+
+    final data = container.read(appProvider);
+    final first = data.entryAt(d, 420)!;
+    expect(first.weightKg, 69.5);
+    expect(first.measurements, {'waist': 80.0, 'c_l_calf': 36.0});
+    expect(data.entryAt(DateTime(2026, 3, 2), 430)!.weightKg, 69.2);
+    expect(data.fields.singleWhere((f) => f.key == 'c_l_calf').hidden, isFalse);
   });
 }

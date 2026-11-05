@@ -1,4 +1,5 @@
 import 'package:body_log/body_map.dart';
+import 'package:body_log/csv_import.dart';
 import 'package:body_log/db.dart';
 import 'package:body_log/models.dart';
 import 'package:body_log/state.dart';
@@ -90,6 +91,32 @@ void main() {
     expect(at(null).mainDates, {DateTime(2026, 1, 1), DateTime(2026, 1, 5), DateTime(2026, 1, 9)});
   });
 
+  test('measurement changes count from the start date', () {
+    final entries = [
+      Entry(id: 1, date: DateTime(2026, 1, 1), minutes: 420, weightKg: 82, measurements: const {'waist': 95}),
+      Entry(id: 2, date: DateTime(2026, 1, 8), minutes: 420, weightKg: 81, measurements: const {'waist': 93}),
+      Entry(id: 3, date: DateTime(2026, 1, 15), minutes: 420, weightKg: 80),
+      Entry(id: 4, date: DateTime(2026, 1, 22), minutes: 420, weightKg: 79, measurements: const {'waist': 90}),
+    ]..sort(Entry.newestFirst);
+    AppData at(DateTime? d) =>
+        AppData(entries: entries, fields: const [], goal: null, unitSystem: UnitSystem.metric, startDate: d);
+    // No start chosen: from the first weigh-in, and the first waist value.
+    expect(at(null).startDay, DateTime(2026, 1, 1));
+    expect(at(null).measurementAtStart('waist'), (DateTime(2026, 1, 1), 95.0));
+    // Start on the 15th (no waist that day): the last waist logged before it.
+    expect(at(DateTime(2026, 1, 15)).measurementAtStart('waist'), (DateTime(2026, 1, 8), 93.0));
+    // Waist first logged after the start: that first value.
+    expect(at(DateTime(2026, 1, 1)).measurementAtStart('hips'), isNull);
+    final noEarlyWaist = AppData(
+      entries: entries.where((e) => e.id != 1 && e.id != 2).toList(),
+      fields: const [],
+      goal: null,
+      unitSystem: UnitSystem.metric,
+      startDate: DateTime(2026, 1, 15),
+    );
+    expect(noEarlyWaist.measurementAtStart('waist'), (DateTime(2026, 1, 22), 90.0));
+  });
+
   test('body parts match by name and side', () {
     MeasureField f(String label) => MeasureField(key: label, label: label, builtIn: false, hidden: false, sortOrder: 0);
     final lThigh = partFor(f('L-Thigh'))!, rThigh = partFor(f('R-Thigh'))!;
@@ -132,5 +159,49 @@ void main() {
       '2026-01-01,07:05,yes,80.00,90.0,30.0\n'
       '2026-01-01,18:00,no,81.00,,\n',
     );
+  });
+
+  group('csv import', () {
+    const fields = [
+      MeasureField(key: 'waist', label: 'Waist', builtIn: true, hidden: false, sortOrder: 0),
+      MeasureField(key: 'c_arm', label: 'Arm, left', builtIn: false, hidden: true, sortOrder: 1),
+    ];
+
+    test('reads back what export writes, in either unit system', () {
+      final entries = [
+        Entry(id: 2, date: DateTime(2026, 1, 1), minutes: 18 * 60, weightKg: 81.25),
+        Entry(id: 1, date: DateTime(2026, 1, 1), minutes: 7 * 60 + 5, weightKg: 80, measurements: const {'waist': 90, 'c_arm': 30}),
+      ];
+      for (final units in UnitSystem.values) {
+        final data = AppData(entries: entries, fields: fields, goal: null, unitSystem: units);
+        final back = parseCsvImport(buildCsv(data), fields);
+        expect(back.skippedColumns, isEmpty);
+        expect(back.badRows, isEmpty);
+        expect([for (final e in back.entries) (e.date, e.minutes)], [(DateTime(2026, 1, 1), 425), (DateTime(2026, 1, 1), 1080)]);
+        // Exported values are rounded (2 decimals for weight, 1 for lengths).
+        expect(back.entries[0].weightKg, closeTo(80, 0.01));
+        expect(back.entries[0].measurements['waist'], closeTo(90, 0.2));
+        expect(back.entries[0].measurements['c_arm'], closeTo(30, 0.2));
+        expect(back.entries[1].weightKg, closeTo(81.25, 0.01));
+        expect(back.entries[1].measurements, isEmpty);
+      }
+    });
+
+    test('reports unknown columns and unreadable rows; tolerates CRLF, BOM and missing time', () {
+      const csv = '\uFEFFdate,Weight (kg),Waist,Mood\r\n'
+          '2026-02-01,70.5,80,3\r\n'
+          'yesterday,71,,\r\n'
+          '2026-02-02,,,\r\n';
+      final r = parseCsvImport(csv, fields);
+      expect(r.skippedColumns, ['Mood']);
+      expect(r.badRows, [3]);
+      expect(r.entries.single.minutes, 8 * 60);
+      expect(r.entries.single.weightKg, 70.5);
+      expect(r.entries.single.measurements, {'waist': 80.0});
+    });
+
+    test('rejects a file without a date column', () {
+      expect(() => parseCsvImport('a,b\n1,2\n', fields), throwsA(isA<CsvImportException>()));
+    });
   });
 }

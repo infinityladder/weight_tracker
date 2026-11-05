@@ -49,11 +49,13 @@ ThemeData buildTheme(Brightness brightness) {
     scaffoldBackgroundColor: scheme.surface,
   );
   return base.copyWith(
+    // Colours set explicitly: the display styles carry none, and dialog
+    // titles (headlineSmall) would otherwise come out white.
     textTheme: base.textTheme.copyWith(
-      headlineLarge: display(40),
-      headlineMedium: display(32),
-      headlineSmall: display(26),
-      titleLarge: display(24, weight: FontWeight.w800),
+      headlineLarge: display(40, color: scheme.onSurface),
+      headlineMedium: display(32, color: scheme.onSurface),
+      headlineSmall: display(26, color: scheme.onSurface),
+      titleLarge: display(24, weight: FontWeight.w800, color: scheme.onSurface),
     ),
     appBarTheme: AppBarTheme(
       backgroundColor: scheme.surface,

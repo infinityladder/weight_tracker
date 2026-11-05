@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import 'csv_import.dart';
 import 'db.dart';
 import 'models.dart';
 import 'units.dart';
@@ -95,6 +96,23 @@ class AppData {
   /// Most recent value logged for a measurement field, in cm.
   double? latestMeasurement(String key) =>
       entries.where((e) => e.measurements.containsKey(key)).firstOrNull?.measurements[key];
+
+  /// The day changes are measured from: the start weigh-in's date, or the
+  /// chosen start date when there's no weigh-in yet. Null with neither.
+  DateTime? get startDay => startMain?.date ?? startDate;
+
+  /// A measurement's value at [startDay] (date, cm): the last one logged on
+  /// or before it, else the first one after. With no start, the first ever.
+  (DateTime, double)? measurementAtStart(String key) {
+    final logged = [
+      for (final e in entries.reversed)
+        if (e.measurements[key] case final v?) (e.date, v),
+    ];
+    if (logged.isEmpty) return null;
+    final start = startDay;
+    if (start == null) return logged.first;
+    return logged.lastWhere((m) => !m.$1.isAfter(start), orElse: () => logged.first);
+  }
 
   AppData copyWith({UnitSystem? unitSystem, WeighWindow? window, BodyType? body}) => AppData(
         entries: entries,
@@ -202,6 +220,42 @@ class AppController extends Notifier<AppData> {
     await _reload();
   }
 
+  /// Merges a CSV export into the log: rows at a date + time that already
+  /// exists update that entry (imported values win), others are added.
+  /// Measurements that receive values are switched on.
+  Future<ImportSummary> importCsv(String text) async {
+    final parsed = parseCsvImport(text, state.fields);
+    final merged = <Entry>[];
+    var updated = 0;
+    for (final e in parsed.entries) {
+      final old = state.entryAt(e.date, e.minutes);
+      if (old == null) {
+        merged.add(e);
+        continue;
+      }
+      updated++;
+      merged.add(Entry(
+        id: old.id,
+        date: old.date,
+        minutes: old.minutes,
+        weightKg: e.weightKg ?? old.weightKg,
+        measurements: {...old.measurements, ...e.measurements},
+      ));
+    }
+    await _db.saveEntries(merged);
+    final used = {for (final e in parsed.entries) ...e.measurements.keys};
+    for (final f in state.fields) {
+      if (f.builtIn && f.hidden && used.contains(f.key)) await _db.setFieldShown(f.key, true);
+    }
+    await _reload();
+    return ImportSummary(
+      added: merged.length - updated,
+      updated: updated,
+      skippedColumns: parsed.skippedColumns,
+      badRows: parsed.badRows,
+    );
+  }
+
   Future<void> exportCsv() async {
     final dir = await getTemporaryDirectory();
     final file = File(p.join(dir.path, 'body_log_${dateKey(DateTime.now())}.csv'));
@@ -238,4 +292,12 @@ String buildCsv(AppData data) {
       ].join(','),
   ];
   return '${rows.join('\n')}\n';
+}
+
+class ImportSummary {
+  const ImportSummary({required this.added, required this.updated, required this.skippedColumns, required this.badRows});
+
+  final int added, updated;
+  final List<String> skippedColumns;
+  final List<int> badRows;
 }
