@@ -8,11 +8,11 @@ import '../units.dart';
 import '../widgets.dart';
 
 Future<void> showSettingsSheet(BuildContext context) => showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (_) => const _SettingsSheet(),
-    );
+  context: context,
+  isScrollControlled: true,
+  showDragHandle: true,
+  builder: (_) => const _SettingsSheet(),
+);
 
 class _SettingsSheet extends ConsumerStatefulWidget {
   const _SettingsSheet();
@@ -46,67 +46,67 @@ class _SettingsSheetState extends ConsumerState<_SettingsSheet> {
     final data = ref.watch(appProvider);
     final scheme = Theme.of(context).colorScheme;
 
-    return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.85),
-        child: ListView(
-          shrinkWrap: true,
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-          children: [
-            Text('SETTINGS', style: display(32)),
-            const SizedBox(height: 18),
-            Text('UNITS', style: label(context)),
-            const SizedBox(height: 8),
-            SegmentedButton<UnitSystem>(
-              showSelectedIcon: false,
-              segments: const [
-                ButtonSegment(value: UnitSystem.metric, label: Text('KG / CM')),
-                ButtonSegment(value: UnitSystem.imperial, label: Text('LB / IN')),
-              ],
-              selected: {data.unitSystem},
-              onSelectionChanged: (s) => ref.read(appProvider.notifier).setUnits(s.first),
+    return _PinnedDoneSheet(
+      child: ListView(
+        shrinkWrap: true,
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+        children: [
+          Text('SETTINGS', style: display(32)),
+          const SizedBox(height: 18),
+          Text('UNITS', style: label(context)),
+          const SizedBox(height: 8),
+          SegmentedButton<UnitSystem>(
+            showSelectedIcon: false,
+            segments: const [
+              ButtonSegment(value: UnitSystem.metric, label: Text('KG / CM')),
+              ButtonSegment(value: UnitSystem.imperial, label: Text('LB / IN')),
+            ],
+            selected: {data.unitSystem},
+            onSelectionChanged: (s) => ref.read(appProvider.notifier).setUnits(s.first),
+          ),
+          const SizedBox(height: 24),
+          Text('MAIN WEIGH-IN WINDOW', style: label(context)),
+          const SizedBox(height: 4),
+          Text(
+            'Weights logged in this time range are your main record (headline, chart, goal). '
+            'Others are notes.',
+            style: TextStyle(color: scheme.onSurfaceVariant),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(child: _timeButton(data.window.start, 'From', (m) => WeighWindow(m, data.window.end))),
+              const SizedBox(width: 12),
+              Expanded(child: _timeButton(data.window.end, 'To', (m) => WeighWindow(data.window.start, m))),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Text('BODY', style: label(context)),
+          const SizedBox(height: 8),
+          BodyTypePicker(data: data),
+          const SizedBox(height: 24),
+          Text('MEASUREMENTS', style: label(context)),
+          const SizedBox(height: 4),
+          Text(
+            'Pick what shows on your body. Switching one off keeps its past values.',
+            style: TextStyle(color: scheme.onSurfaceVariant),
+          ),
+          const SizedBox(height: 10),
+          MeasurePicker(data: data),
+          const SizedBox(height: 24),
+          Text('DATA', style: label(context)),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: data.entries.isEmpty ? null : () => ref.read(appProvider.notifier).exportCsv(),
+            icon: const Icon(Icons.ios_share),
+            label: const Text('EXPORT CSV'),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size.fromHeight(52),
+              side: const BorderSide(color: brandOrange, width: 2),
+              textStyle: display(20, weight: FontWeight.w800),
             ),
-            const SizedBox(height: 24),
-            Text('MAIN WEIGH-IN WINDOW', style: label(context)),
-            const SizedBox(height: 4),
-            Text('Weights logged in this time range are your main record (headline, chart, goal). '
-                'Others are notes.',
-                style: TextStyle(color: scheme.onSurfaceVariant)),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(child: _timeButton(data.window.start, 'From', (m) => WeighWindow(m, data.window.end))),
-                const SizedBox(width: 12),
-                Expanded(child: _timeButton(data.window.end, 'To', (m) => WeighWindow(data.window.start, m))),
-              ],
-            ),
-            const SizedBox(height: 24),
-            Text('BODY', style: label(context)),
-            const SizedBox(height: 8),
-            BodyTypePicker(data: data),
-            const SizedBox(height: 24),
-            Text('MEASUREMENTS', style: label(context)),
-            const SizedBox(height: 4),
-            Text('Pick what shows on your body. Switching one off keeps its past values.',
-                style: TextStyle(color: scheme.onSurfaceVariant)),
-            const SizedBox(height: 10),
-            MeasurePicker(data: data),
-            const SizedBox(height: 24),
-            Text('DATA', style: label(context)),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              onPressed: data.entries.isEmpty ? null : () => ref.read(appProvider.notifier).exportCsv(),
-              icon: const Icon(Icons.ios_share),
-              label: const Text('EXPORT CSV'),
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size.fromHeight(52),
-                side: const BorderSide(color: brandOrange, width: 2),
-                textStyle: display(20, weight: FontWeight.w800),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -114,33 +114,59 @@ class _SettingsSheetState extends ConsumerState<_SettingsSheet> {
 
 /// Just the measurement picker, for quick access from the home screen.
 Future<void> showMeasurePickerSheet(BuildContext context) => showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (_) => Consumer(
-        builder: (context, ref, _) => SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text('MEASUREMENTS', style: display(30)),
-                const SizedBox(height: 4),
-                Text('Pick what shows on your body.',
-                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-                const SizedBox(height: 14),
-                BodyTypePicker(data: ref.watch(appProvider)),
-                const SizedBox(height: 14),
-                MeasurePicker(data: ref.watch(appProvider)),
-                const SizedBox(height: 18),
-                FilledButton(onPressed: () => Navigator.pop(context), child: const Text('DONE')),
-              ],
-            ),
+  context: context,
+  isScrollControlled: true,
+  showDragHandle: true,
+  builder: (_) => Consumer(
+    builder: (context, ref, _) => _PinnedDoneSheet(
+      child: ListView(
+        shrinkWrap: true,
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+        children: [
+          Text('MEASUREMENTS', style: display(30)),
+          const SizedBox(height: 4),
+          Text(
+            'Pick what shows on your body.',
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
+          const SizedBox(height: 14),
+          BodyTypePicker(data: ref.watch(appProvider)),
+          const SizedBox(height: 14),
+          MeasurePicker(data: ref.watch(appProvider)),
+        ],
+      ),
+    ),
+  ),
+);
+
+/// Sheet body that scrolls above a DONE button that always stays in view,
+/// clear of the system navigation bar.
+class _PinnedDoneSheet extends StatelessWidget {
+  const _PinnedDoneSheet({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.85),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Flexible(child: child),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+              child: FilledButton(onPressed: () => Navigator.pop(context), child: const Text('DONE')),
+            ),
+          ],
         ),
       ),
     );
+  }
+}
 
 /// Chips for the standard measurements; tap to show or hide one.
 class MeasurePicker extends ConsumerWidget {

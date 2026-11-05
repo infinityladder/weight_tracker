@@ -19,28 +19,35 @@ class BodyPart {
   BodyPart mirrored() => BodyPart(200 - x2, 200 - x1, y, !right, typicalCm);
 }
 
+const _images = {BodyType.male: 'images/male.png', BodyType.female: 'images/female.png'};
+
+/// Where the body picture sits in the 200 x 440 box: full width, centred
+/// vertically. Both pictures are about 0.524 wide for each unit of height.
+const _imageRect = Rect.fromLTWH(0, 29.25, 200, 381.5);
+
 /// Keyword -> where it sits on the male and female figures, most specific
-/// first ("forearm" before "arm", "above knee" before "knee").
+/// first ("forearm" before "arm", "above knee" before "knee"). Positions are
+/// measured on each body's picture as placed by [_imageRect].
 const _parts = <(String, BodyPart, BodyPart)>[
-  ('neck', BodyPart(88, 112, 62, false, 38), BodyPart(91, 109, 62, false, 33)),
-  ('shoulder', BodyPart(47, 153, 90, true, 110), BodyPart(53, 147, 92, true, 100)),
-  ('chest', BodyPart(51, 149, 122, false, 95), BodyPart(55, 145, 124, false, 90)),
-  ('bust', BodyPart(51, 149, 122, false, 95), BodyPart(55, 145, 124, false, 90)),
-  ('forearm', BodyPart(25, 47, 225, false, 27), BodyPart(33, 49, 225, false, 23)),
-  ('wrist', BodyPart(20, 40, 262, false, 16), BodyPart(30, 44, 262, false, 15)),
-  ('bicep', BodyPart(32, 60, 140, false, 30), BodyPart(41, 61, 140, false, 27)),
-  ('arm', BodyPart(32, 60, 140, false, 30), BodyPart(41, 61, 140, false, 27)),
-  ('belly', BodyPart(61, 139, 172, false, 85), BodyPart(66, 134, 172, false, 78)),
-  ('abdom', BodyPart(61, 139, 172, false, 85), BodyPart(66, 134, 172, false, 78)),
-  ('stomach', BodyPart(61, 139, 172, false, 85), BodyPart(66, 134, 172, false, 78)),
-  ('waist', BodyPart(66, 134, 200, true, 80), BodyPart(72, 128, 200, true, 72)),
-  ('hip', BodyPart(56, 144, 248, true, 98), BodyPart(53, 147, 246, true, 100)),
-  ('glute', BodyPart(56, 144, 248, true, 98), BodyPart(53, 147, 246, true, 100)),
-  ('above knee', BodyPart(61, 94, 334, false, 42), BodyPart(61, 93, 334, false, 42)),
-  ('thigh', BodyPart(59, 98, 290, false, 55), BodyPart(56, 97, 290, false, 57)),
-  ('knee', BodyPart(63, 90, 352, false, 38), BodyPart(64, 90, 352, false, 37)),
-  ('calf', BodyPart(109, 137, 385, true, 37), BodyPart(112, 134, 385, true, 35)),
-  ('ankle', BodyPart(113, 135, 418, true, 22), BodyPart(114, 134, 418, true, 21)),
+  ('neck', BodyPart(86, 110, 78, false, 38), BodyPart(89, 105, 96, false, 33)),
+  ('shoulder', BodyPart(49, 149, 109, true, 110), BodyPart(55, 145, 115, true, 100)),
+  ('chest', BodyPart(59, 140, 129, false, 95), BodyPart(70, 131, 135, false, 90)),
+  ('bust', BodyPart(59, 140, 129, false, 95), BodyPart(70, 131, 135, false, 90)),
+  ('forearm', BodyPart(26, 46, 181, false, 27), BodyPart(31, 49, 188, false, 23)),
+  ('wrist', BodyPart(17, 33, 195, false, 16), BodyPart(20, 35, 201, false, 15)),
+  ('bicep', BodyPart(40, 61, 150, false, 30), BodyPart(50, 68, 153, false, 27)),
+  ('arm', BodyPart(40, 61, 150, false, 30), BodyPart(50, 68, 153, false, 27)),
+  ('belly', BodyPart(70, 128, 162, false, 85), BodyPart(72, 130, 179, false, 78)),
+  ('abdom', BodyPart(70, 128, 162, false, 85), BodyPart(72, 130, 179, false, 78)),
+  ('stomach', BodyPart(70, 128, 162, false, 85), BodyPart(72, 130, 179, false, 78)),
+  ('waist', BodyPart(69, 129, 176, true, 80), BodyPart(76, 124, 164, true, 72)),
+  ('hip', BodyPart(60, 139, 215, true, 98), BodyPart(59, 144, 214, true, 100)),
+  ('glute', BodyPart(60, 139, 215, true, 98), BodyPart(59, 144, 214, true, 100)),
+  ('above knee', BodyPart(65, 90, 283, false, 42), BodyPart(66, 91, 280, false, 42)),
+  ('thigh', BodyPart(61, 94, 259, false, 55), BodyPart(61, 95, 254, false, 57)),
+  ('knee', BodyPart(65, 86, 302, false, 38), BodyPart(66, 89, 294, false, 37)),
+  ('calf', BodyPart(114, 140, 329, true, 37), BodyPart(119, 146, 322, true, 35)),
+  ('ankle', BodyPart(122, 135, 377, true, 22), BodyPart(130, 142, 366, true, 21)),
 ];
 
 /// The part a field measures on [body], matched by name. "L-"/"left" and
@@ -110,8 +117,9 @@ class BodyMap extends StatelessWidget {
       final cardH = ((c.maxHeight - _gap * (rows - 1)) / rows).clamp(56.0, 76.0);
       final h = math.max(c.maxHeight, rows * cardH + (rows - 1) * _gap);
 
-      // Figure fills the middle; the arms may tuck slightly under the cards.
-      final s = math.min(h / 450, math.max(0.4, (w - 2 * cardW - 4) / 150));
+      // Figure fills the middle; the outstretched hands may tuck slightly
+      // under the cards.
+      final s = math.min(h / 450, math.max(0.4, (w - 2 * cardW - 4) / 185));
       final ox = (w - 200 * s) / 2, oy = (h - 440 * s) / 2;
       Offset toCanvas(double x, double y) => Offset(ox + x * s, oy + y * s);
 
@@ -157,16 +165,16 @@ class BodyMap extends StatelessWidget {
         height: h,
         child: Stack(
           children: [
+            Positioned(
+              left: ox + _imageRect.left * s,
+              top: oy + _imageRect.top * s,
+              width: _imageRect.width * s,
+              height: _imageRect.height * s,
+              child: Image.asset(_images[body]!, fit: BoxFit.contain, filterQuality: FilterQuality.medium),
+            ),
             Positioned.fill(
               child: CustomPaint(
-                painter: _BodyPainter(
-                  origin: Offset(ox, oy),
-                  scale: s,
-                  fill: scheme.onSurface,
-                  ringColor: scheme.surface,
-                  highlight: highlight,
-                  body: body,
-                ),
+                painter: _HighlightPainter(ringColor: scheme.surface, highlight: highlight),
               ),
             ),
             for (final (isRight, column) in [(false, left), (true, right)])
@@ -255,32 +263,17 @@ class _PartCard extends StatelessWidget {
   }
 }
 
-class _BodyPainter extends CustomPainter {
-  _BodyPainter({
-    required this.origin,
-    required this.scale,
-    required this.fill,
-    required this.ringColor,
-    required this.highlight,
-    required this.body,
-  });
+/// The selected part's band, a dashed leader to its card and a ringed dot.
+class _HighlightPainter extends CustomPainter {
+  _HighlightPainter({required this.ringColor, required this.highlight});
 
-  final BodyType body;
-  final Offset origin;
-  final double scale;
-  final Color fill, ringColor;
+  final Color ringColor;
 
   /// Selected part: band start, band end, leader anchor, card edge (canvas coordinates).
   final (Offset, Offset, Offset, Offset)? highlight;
 
   @override
   void paint(Canvas canvas, Size size) {
-    canvas.save();
-    canvas.translate(origin.dx, origin.dy);
-    canvas.scale(scale);
-    body == BodyType.female ? _paintFemale(canvas) : _paintFigure(canvas);
-    canvas.restore();
-
     final hl = highlight;
     if (hl == null) return;
     final (a, b, anchor, card) = hl;
@@ -320,124 +313,6 @@ class _BodyPainter extends CustomPainter {
     }
   }
 
-  Paint get _fillPaint => Paint()
-    ..shader = LinearGradient(
-      begin: Alignment.topCenter,
-      end: Alignment.bottomCenter,
-      colors: [fill.withValues(alpha: 0.16), fill.withValues(alpha: 0.08)],
-    ).createShader(const Rect.fromLTWH(0, 0, 200, 440));
-
-  static Paint _limb(Paint fill, double width) => Paint()
-    ..shader = fill.shader
-    ..style = PaintingStyle.stroke
-    ..strokeCap = StrokeCap.round
-    ..strokeWidth = width;
-
-  /// Male silhouette in a 200 x 440 box, built from overlapping filled shapes.
-  void _paintFigure(Canvas canvas) {
-    final paint = _fillPaint;
-    Paint limb(double width) => _limb(paint, width);
-
-    // Head and neck.
-    canvas.drawOval(Rect.fromCenter(center: const Offset(100, 32), width: 44, height: 54), paint);
-    canvas.drawRRect(RRect.fromLTRBR(88, 50, 112, 76, const Radius.circular(8)), paint);
-
-    // Torso: left half traced top to bottom, right half mirrored back up.
-    final torso = Path()
-      ..moveTo(88, 70)
-      ..quadraticBezierTo(62, 72, 52, 90)
-      ..cubicTo(46, 104, 50, 132, 56, 150)
-      ..cubicTo(61, 170, 67, 185, 67, 200)
-      ..cubicTo(65, 216, 57, 232, 58, 256)
-      ..lineTo(142, 256)
-      ..cubicTo(143, 232, 135, 216, 133, 200)
-      ..cubicTo(133, 185, 139, 170, 144, 150)
-      ..cubicTo(150, 132, 154, 104, 148, 90)
-      ..quadraticBezierTo(138, 72, 112, 70)
-      ..close();
-    canvas.drawPath(torso, paint);
-
-    for (final mirror in [false, true]) {
-      Offset m(double x, double y) => Offset(mirror ? 200 - x : x, y);
-      // Arms.
-      canvas.drawLine(m(53, 96), m(40, 182), limb(25));
-      canvas.drawLine(m(40, 184), m(31, 262), limb(19));
-      canvas.drawOval(Rect.fromCenter(center: m(29, 280), width: 18, height: 26), paint);
-      // Legs: tapered thigh, then calf.
-      final leg = Path()
-        ..moveTo(m(58, 250).dx, 250)
-        ..lineTo(m(101, 250).dx, 250)
-        ..lineTo(m(93, 350).dx, 350)
-        ..lineTo(m(61, 350).dx, 350)
-        ..close();
-      canvas.drawPath(leg, paint);
-      canvas.drawLine(m(77, 352), m(76, 418), limb(27));
-      canvas.drawOval(Rect.fromCenter(center: m(73, 430), width: 30, height: 14), paint);
-    }
-  }
-
-  /// Female silhouette in the same box: hair, narrower shoulders and waist,
-  /// fuller bust and hips, slimmer limbs.
-  void _paintFemale(Canvas canvas) {
-    final paint = _fillPaint;
-    Paint limb(double width) => _limb(paint, width);
-
-    // Hair behind the head, then head and neck.
-    canvas.drawPath(
-      Path()
-        ..moveTo(74, 34)
-        ..cubicTo(72, 2, 128, 2, 126, 34)
-        ..cubicTo(127, 52, 130, 70, 124, 80)
-        ..lineTo(76, 80)
-        ..cubicTo(70, 70, 73, 52, 74, 34)
-        ..close(),
-      paint,
-    );
-    canvas.drawOval(Rect.fromCenter(center: const Offset(100, 34), width: 40, height: 50), paint);
-    canvas.drawRRect(RRect.fromLTRBR(91, 52, 109, 76, const Radius.circular(7)), paint);
-
-    // Torso: hourglass, traced like the male one.
-    final torso = Path()
-      ..moveTo(91, 70)
-      ..quadraticBezierTo(62, 74, 56, 92)
-      ..cubicTo(52, 108, 54, 126, 58, 142)
-      ..cubicTo(63, 162, 72, 182, 72, 200)
-      ..cubicTo(71, 218, 53, 232, 54, 256)
-      ..lineTo(146, 256)
-      ..cubicTo(147, 232, 129, 218, 128, 200)
-      ..cubicTo(128, 182, 137, 162, 142, 142)
-      ..cubicTo(146, 126, 148, 108, 144, 92)
-      ..quadraticBezierTo(138, 74, 109, 70)
-      ..close();
-    canvas.drawPath(torso, paint);
-    for (final x in [82.0, 118.0]) {
-      canvas.drawOval(Rect.fromCenter(center: Offset(x, 128), width: 32, height: 24), paint);
-    }
-
-    for (final mirror in [false, true]) {
-      Offset m(double x, double y) => Offset(mirror ? 200 - x : x, y);
-      // Arms.
-      canvas.drawLine(m(57, 98), m(46, 182), limb(20));
-      canvas.drawLine(m(46, 184), m(38, 262), limb(15));
-      canvas.drawOval(Rect.fromCenter(center: m(36, 277), width: 15, height: 22), paint);
-      // Legs: wider at the hip, tapering to the knee, then calf.
-      final leg = Path()
-        ..moveTo(m(54, 250).dx, 250)
-        ..lineTo(m(101, 250).dx, 250)
-        ..lineTo(m(92, 350).dx, 350)
-        ..lineTo(m(62, 350).dx, 350)
-        ..close();
-      canvas.drawPath(leg, paint);
-      canvas.drawLine(m(77, 352), m(77, 418), limb(23));
-      canvas.drawOval(Rect.fromCenter(center: m(75, 428), width: 24, height: 12), paint);
-    }
-  }
-
   @override
-  bool shouldRepaint(_BodyPainter old) =>
-      old.origin != origin ||
-      old.scale != scale ||
-      old.fill != fill ||
-      old.highlight != highlight ||
-      old.body != body;
+  bool shouldRepaint(_HighlightPainter old) => old.highlight != highlight || old.ringColor != ringColor;
 }

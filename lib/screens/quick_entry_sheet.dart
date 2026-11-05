@@ -10,11 +10,11 @@ import '../widgets.dart';
 
 /// Logs a weight at a chosen date + time (defaults to now).
 Future<void> showQuickEntry(BuildContext context) => showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (_) => const _WeightSheet(),
-    );
+  context: context,
+  isScrollControlled: true,
+  showDragHandle: true,
+  builder: (_) => const _WeightSheet(),
+);
 
 class _WeightSheet extends ConsumerStatefulWidget {
   const _WeightSheet();
@@ -69,13 +69,17 @@ class _WeightSheetState extends ConsumerState<_WeightSheet> {
     final data = ref.read(appProvider);
     // Keep any measurements already logged at that exact time.
     final existing = data.entryAt(_date, _minutes);
-    await ref.read(appProvider.notifier).saveEntry(Entry(
-          id: existing?.id,
-          date: _date,
-          minutes: _minutes,
-          weightKg: data.units.weightIn(value),
-          measurements: existing?.measurements ?? const {},
-        ));
+    await ref
+        .read(appProvider.notifier)
+        .saveEntry(
+          Entry(
+            id: existing?.id,
+            date: _date,
+            minutes: _minutes,
+            weightKg: data.units.weightIn(value),
+            measurements: existing?.measurements ?? const {},
+          ),
+        );
     if (mounted) Navigator.pop(context);
   }
 
@@ -88,15 +92,22 @@ class _WeightSheetState extends ConsumerState<_WeightSheet> {
     final inWindow = data.window.contains(_minutes);
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(20, 0, 20, 20 + MediaQuery.viewInsetsOf(context).bottom),
+      padding: EdgeInsets.fromLTRB(
+        20,
+        0,
+        20,
+        20 + MediaQuery.viewInsetsOf(context).bottom + MediaQuery.paddingOf(context).bottom,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text('WEIGHT', style: display(34)),
           if (last != null)
-            Text('Last: ${u.fmtWeight(last)} ${u.weight}',
-                style: TextStyle(color: scheme.onSurfaceVariant, fontWeight: FontWeight.w600)),
+            Text(
+              'Last: ${u.fmtWeight(last)} ${u.weight}',
+              style: TextStyle(color: scheme.onSurfaceVariant, fontWeight: FontWeight.w600),
+            ),
           const SizedBox(height: 16),
           TextField(
             controller: _value,

@@ -9,11 +9,11 @@ import '../units.dart';
 import 'start_sheet.dart';
 
 Future<void> showGoalSheet(BuildContext context) => showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (_) => const _GoalSheet(),
-    );
+  context: context,
+  isScrollControlled: true,
+  showDragHandle: true,
+  builder: (_) => const _GoalSheet(),
+);
 
 class _GoalSheet extends ConsumerStatefulWidget {
   const _GoalSheet();
@@ -31,8 +31,7 @@ class _GoalSheetState extends ConsumerState<_GoalSheet> {
     super.initState();
     final data = ref.read(appProvider);
     final goal = data.goal;
-    _target = TextEditingController(
-        text: goal == null ? '' : data.units.fmtWeight(goal.targetWeightKg));
+    _target = TextEditingController(text: goal == null ? '' : data.units.fmtWeight(goal.targetWeightKg));
     _date = goal?.targetDate ?? dateOnly(DateTime.now()).add(const Duration(days: 90));
   }
 
@@ -56,8 +55,7 @@ class _GoalSheetState extends ConsumerState<_GoalSheet> {
   Future<void> _save() async {
     final value = parseNumber(_target.text);
     if (value == null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Enter a target weight')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter a target weight')));
       return;
     }
     final units = ref.read(appProvider).units;
@@ -74,10 +72,14 @@ class _GoalSheetState extends ConsumerState<_GoalSheet> {
   Widget build(BuildContext context) {
     final data = ref.watch(appProvider);
     final u = data.units;
-    final start = data.goal?.startWeightKg ??
-        (data.startDate != null ? data.startMain : data.latestMain)?.weightKg;
+    final start = data.goal?.startWeightKg ?? (data.startDate != null ? data.startMain : data.latestMain)?.weightKg;
     return Padding(
-      padding: EdgeInsets.fromLTRB(20, 0, 20, 20 + MediaQuery.viewInsetsOf(context).bottom),
+      padding: EdgeInsets.fromLTRB(
+        20,
+        0,
+        20,
+        20 + MediaQuery.viewInsetsOf(context).bottom + MediaQuery.paddingOf(context).bottom,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -87,8 +89,10 @@ class _GoalSheetState extends ConsumerState<_GoalSheet> {
             Row(
               children: [
                 Expanded(
-                  child: Text('Starting from ${u.fmtWeight(start)} ${u.weight}',
-                      style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                  child: Text(
+                    'Starting from ${u.fmtWeight(start)} ${u.weight}',
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  ),
                 ),
                 TextButton.icon(
                   onPressed: () => showStartSheet(context),
@@ -110,12 +114,8 @@ class _GoalSheetState extends ConsumerState<_GoalSheet> {
             onTap: _pickDate,
             borderRadius: BorderRadius.circular(16),
             child: InputDecorator(
-              decoration: const InputDecoration(
-                labelText: 'Target date',
-                suffixIcon: Icon(Icons.calendar_today),
-              ),
-              child: Text(DateFormat('EEE d MMM yyyy').format(_date),
-                  style: display(24, weight: FontWeight.w800)),
+              decoration: const InputDecoration(labelText: 'Target date', suffixIcon: Icon(Icons.calendar_today)),
+              child: Text(DateFormat('EEE d MMM yyyy').format(_date), style: display(24, weight: FontWeight.w800)),
             ),
           ),
           const SizedBox(height: 20),
