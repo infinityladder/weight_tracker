@@ -19,35 +19,38 @@ class BodyPart {
   BodyPart mirrored() => BodyPart(200 - x2, 200 - x1, y, !right, typicalCm);
 }
 
-const _images = {BodyType.male: 'images/male.png', BodyType.female: 'images/female.png'};
+const _images = {BodyType.male: 'images/body_log_male.png', BodyType.female: 'images/body_log_female.png'};
 
-/// Where the body picture sits in the 200 x 440 box: full width, centred
-/// vertically. Both pictures are about 0.524 wide for each unit of height.
-const _imageRect = Rect.fromLTWH(0, 29.25, 200, 381.5);
+/// Where each body picture sits in the 200 x 440 box: full width, centred
+/// vertically.
+const _imageRects = {
+  BodyType.male: Rect.fromLTWH(0, 38.37, 200, 363.27),
+  BodyType.female: Rect.fromLTWH(0, 29.25, 200, 381.5),
+};
 
 /// Keyword -> where it sits on the male and female figures, most specific
 /// first ("forearm" before "arm", "above knee" before "knee"). Positions are
-/// measured on each body's picture as placed by [_imageRect].
+/// measured on each body's picture as placed by [_imageRects].
 const _parts = <(String, BodyPart, BodyPart)>[
-  ('neck', BodyPart(86, 110, 78, false, 38), BodyPart(89, 105, 96, false, 33)),
-  ('shoulder', BodyPart(49, 149, 109, true, 110), BodyPart(55, 145, 115, true, 100)),
-  ('chest', BodyPart(59, 140, 129, false, 95), BodyPart(70, 131, 135, false, 90)),
-  ('bust', BodyPart(59, 140, 129, false, 95), BodyPart(70, 131, 135, false, 90)),
-  ('forearm', BodyPart(26, 46, 181, false, 27), BodyPart(31, 49, 188, false, 23)),
-  ('wrist', BodyPart(17, 33, 195, false, 16), BodyPart(20, 35, 201, false, 15)),
-  ('bicep', BodyPart(40, 61, 150, false, 30), BodyPart(50, 68, 153, false, 27)),
-  ('arm', BodyPart(40, 61, 150, false, 30), BodyPart(50, 68, 153, false, 27)),
-  ('belly', BodyPart(70, 128, 162, false, 85), BodyPart(72, 130, 179, false, 78)),
-  ('abdom', BodyPart(70, 128, 162, false, 85), BodyPart(72, 130, 179, false, 78)),
-  ('stomach', BodyPart(70, 128, 162, false, 85), BodyPart(72, 130, 179, false, 78)),
-  ('waist', BodyPart(69, 129, 176, true, 80), BodyPart(76, 124, 164, true, 72)),
-  ('hip', BodyPart(60, 139, 215, true, 98), BodyPart(59, 144, 214, true, 100)),
-  ('glute', BodyPart(60, 139, 215, true, 98), BodyPart(59, 144, 214, true, 100)),
-  ('above knee', BodyPart(65, 90, 283, false, 42), BodyPart(66, 91, 280, false, 42)),
-  ('thigh', BodyPart(61, 94, 259, false, 55), BodyPart(61, 95, 254, false, 57)),
-  ('knee', BodyPart(65, 86, 302, false, 38), BodyPart(66, 89, 294, false, 37)),
-  ('calf', BodyPart(114, 140, 329, true, 37), BodyPart(119, 146, 322, true, 35)),
-  ('ankle', BodyPart(122, 135, 377, true, 22), BodyPart(130, 142, 366, true, 21)),
+  ('neck', BodyPart(87, 112, 86, false, 38), BodyPart(89, 105, 96, false, 33)),
+  ('shoulder', BodyPart(50, 150, 114, true, 110), BodyPart(55, 145, 115, true, 100)),
+  ('chest', BodyPart(60, 140, 138, false, 95), BodyPart(70, 131, 135, false, 90)),
+  ('bust', BodyPart(60, 140, 138, false, 95), BodyPart(70, 131, 135, false, 90)),
+  ('forearm', BodyPart(27, 48, 186, false, 27), BodyPart(31, 49, 188, false, 23)),
+  ('wrist', BodyPart(17, 34, 200, false, 16), BodyPart(20, 35, 201, false, 15)),
+  ('bicep', BodyPart(43, 65, 150, false, 30), BodyPart(50, 68, 153, false, 27)),
+  ('arm', BodyPart(43, 65, 150, false, 30), BodyPart(50, 68, 153, false, 27)),
+  ('belly', BodyPart(71, 128, 168, false, 85), BodyPart(72, 130, 179, false, 78)),
+  ('abdom', BodyPart(71, 128, 168, false, 85), BodyPart(72, 130, 179, false, 78)),
+  ('stomach', BodyPart(71, 128, 168, false, 85), BodyPart(72, 130, 179, false, 78)),
+  ('waist', BodyPart(71, 129, 186, true, 80), BodyPart(76, 124, 164, true, 72)),
+  ('hip', BodyPart(58, 142, 234, true, 98), BodyPart(59, 144, 214, true, 100)),
+  ('glute', BodyPart(58, 142, 234, true, 98), BodyPart(59, 144, 214, true, 100)),
+  ('above knee', BodyPart(65, 90, 284, false, 42), BodyPart(66, 91, 280, false, 42)),
+  ('thigh', BodyPart(61, 94, 258, false, 55), BodyPart(61, 95, 254, false, 57)),
+  ('knee', BodyPart(62, 84, 302, false, 38), BodyPart(66, 89, 294, false, 37)),
+  ('calf', BodyPart(114, 141, 322, true, 37), BodyPart(119, 146, 322, true, 35)),
+  ('ankle', BodyPart(123, 135, 366, true, 22), BodyPart(130, 142, 366, true, 21)),
 ];
 
 /// The part a field measures on [body], matched by name. "L-"/"left" and
@@ -166,10 +169,10 @@ class BodyMap extends StatelessWidget {
         child: Stack(
           children: [
             Positioned(
-              left: ox + _imageRect.left * s,
-              top: oy + _imageRect.top * s,
-              width: _imageRect.width * s,
-              height: _imageRect.height * s,
+              left: ox + _imageRects[body]!.left * s,
+              top: oy + _imageRects[body]!.top * s,
+              width: _imageRects[body]!.width * s,
+              height: _imageRects[body]!.height * s,
               child: Image.asset(_images[body]!, fit: BoxFit.contain, filterQuality: FilterQuality.medium),
             ),
             Positioned.fill(
