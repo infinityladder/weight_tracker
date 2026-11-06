@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Orange gradient behind the BODY / LOG launcher icon. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <gradient
+        android:angle="315"
+        android:startColor="#FFFF4D1A"
+        android:endColor="#FFE2340A" />
+</shape>
