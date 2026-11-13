@@ -83,7 +83,13 @@ class MeasureField {
   /// Switched off; past values are kept.
   final bool hidden;
   final int sortOrder;
+
+  /// One of the measurements the user names; never placed on the body.
+  bool get custom => customMeasureKeys.contains(key);
 }
+
+/// Keys of the user-named measurements, in order.
+const customMeasureKeys = ['c_custom_1', 'c_custom_2', 'c_custom_3'];
 
 class Goal {
   const Goal({

@@ -78,6 +78,20 @@ void main() {
     expect(fields.where((f) => !f.hidden).map((f) => f.key).toSet(), BodyLogDb.shownByDefault);
   });
 
+  test('custom measurements keep the name the user gives them', () async {
+    var db = await BodyLogDb.open();
+    await db.renameField('c_custom_1', '  Neck lower ');
+    await db.renameField('c_custom_2', ''); // empty: name unchanged
+    await db.renameField('waist', 'Belt'); // not custom: unchanged
+    // An upgrade re-syncs the standard list and must keep the custom name.
+    final raw = await openDatabase(path);
+    await raw.setVersion(5);
+    await raw.close();
+    db = await BodyLogDb.open();
+    final labels = {for (final f in await db.fields()) f.key: f.label};
+    expect((labels['c_custom_1'], labels['c_custom_2'], labels['waist']), ('Neck lower', 'Custom 2', 'Waist'));
+  });
+
   test('save updates by id, by matching date+time, or inserts', () async {
     final db = await BodyLogDb.open();
     final d = DateTime(2026, 10, 2);

@@ -106,6 +106,16 @@ class _SettingsSheetState extends ConsumerState<_SettingsSheet> {
           const SizedBox(height: 10),
           MeasurePicker(data: data),
           const SizedBox(height: 24),
+          Text('CUSTOM', style: label(context)),
+          const SizedBox(height: 4),
+          Text(
+            'Three measurements of your own. They show in a row under the body.',
+            style: TextStyle(color: scheme.onSurfaceVariant),
+          ),
+          const SizedBox(height: 10),
+          for (final f in data.fields.where((f) => f.custom))
+            Padding(padding: const EdgeInsets.only(bottom: 10), child: CustomMeasureRow(field: f)),
+          const SizedBox(height: 14),
           Text('DATA', style: label(context)),
           const SizedBox(height: 8),
           Row(
@@ -163,7 +173,7 @@ class MeasurePicker extends ConsumerWidget {
       spacing: 8,
       runSpacing: 8,
       children: [
-        for (final f in data.standardFields)
+        for (final f in data.standardFields.where((f) => !f.custom))
           FilterChip(
             label: Text(f.label.toUpperCase()),
             selected: !f.hidden,
@@ -172,6 +182,51 @@ class MeasurePicker extends ConsumerWidget {
             labelStyle: display(17, weight: FontWeight.w700, color: f.hidden ? scheme.onSurface : Colors.white),
             onSelected: (on) => ref.read(appProvider.notifier).setFieldShown(f.key, on),
           ),
+      ],
+    );
+  }
+}
+
+/// Name box and on/off switch for one custom measurement. The name is saved as
+/// it's typed; an empty box keeps the previous name.
+class CustomMeasureRow extends ConsumerStatefulWidget {
+  const CustomMeasureRow({super.key, required this.field});
+
+  final MeasureField field;
+
+  @override
+  ConsumerState<CustomMeasureRow> createState() => _CustomMeasureRowState();
+}
+
+class _CustomMeasureRowState extends ConsumerState<CustomMeasureRow> {
+  late final _name = TextEditingController(text: widget.field.label);
+
+  @override
+  void dispose() {
+    _name.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final notifier = ref.read(appProvider.notifier);
+    return Row(
+      children: [
+        Expanded(
+          child: TextField(
+            controller: _name,
+            textCapitalization: TextCapitalization.words,
+            maxLength: 20,
+            decoration: const InputDecoration(labelText: 'Name', counterText: ''),
+            onChanged: (t) => notifier.renameField(widget.field.key, t),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Switch(
+          value: !widget.field.hidden,
+          activeTrackColor: brandOrange,
+          onChanged: (on) => notifier.setFieldShown(widget.field.key, on),
+        ),
       ],
     );
   }

@@ -126,7 +126,8 @@ void main() {
     expect(lKnee.y, lessThan(partFor(f('Knee'))!.y));
     expect(partFor(f('Mood')), isNull);
     // Every standard measure has a place on the body, on the side its name says.
-    for (final (_, label) in BodyLogDb.measures) {
+    for (final (key, label) in BodyLogDb.measures) {
+      if (customMeasureKeys.contains(key)) continue;
       for (final body in BodyType.values) {
         final part = partFor(f(label), body);
         expect(part, isNotNull, reason: label);
@@ -138,6 +139,9 @@ void main() {
     double width(BodyPart p) => p.x2 - p.x1;
     expect(width(partFor(f('Waist'), BodyType.female)!), lessThan(width(partFor(f('Waist'))!)));
     expect(width(partFor(f('Hips'), BodyType.female)!), greaterThan(width(partFor(f('Hips'))!)));
+    // Custom measurements stay off the body, whatever they're called.
+    const custom = MeasureField(key: 'c_custom_1', label: 'Left calf', builtIn: true, hidden: false, sortOrder: 0);
+    expect(partFor(custom), isNull);
   });
 
   test('csv export has time and main flag, quotes labels, includes hidden fields', () {

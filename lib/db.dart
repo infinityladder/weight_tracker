@@ -29,17 +29,23 @@ class BodyLogDb {
     ('c_r_above_knee', 'R-Above Knee'),
     ('c_l_calf', 'L-Calf'),
     ('c_r_calf', 'R-Calf'),
+    // Named by the user (see [customMeasureKeys]); these are the default names.
+    ('c_custom_1', 'Custom 1'),
+    ('c_custom_2', 'Custom 2'),
+    ('c_custom_3', 'Custom 3'),
   ];
 
   /// Shown on a fresh install; the rest are switched on in Settings.
   static const shownByDefault = {'c_chest', 'waist', 'hips', 'c_l_thigh', 'c_r_thigh'};
 
   /// Makes the fields table match [measures]: standard fields get their label
-  /// and order, missing ones are added (hidden unless [fresh] and shown by
-  /// default), and anything else is hidden for good. Values are never deleted.
+  /// and order (custom ones keep the name the user gave them), missing ones are
+  /// added (hidden unless [fresh] and shown by default), and anything else is
+  /// hidden for good. Values are never deleted.
   static Future<void> _syncMeasures(DatabaseExecutor db, {required bool fresh}) async {
     for (final (i, (key, label)) in measures.indexed) {
-      final updated = await db.update('fields', {'label': label, 'built_in': 1, 'sort_order': i},
+      final updated = await db.update(
+          'fields', {if (!customMeasureKeys.contains(key)) 'label': label, 'built_in': 1, 'sort_order': i},
           where: 'key = ?', whereArgs: [key]);
       if (updated == 0) {
         await db.insert('fields', {
@@ -70,7 +76,7 @@ class BodyLogDb {
     final path = p.join(await getDatabasesPath(), 'body_log.db');
     final db = await openDatabase(
       path,
-      version: 5,
+      version: 7,
       onUpgrade: (db, from, to) async {
         if (from < 2) {
           // v1 stored a named slot per entry; map each slot to a representative time.
@@ -84,7 +90,7 @@ class BodyLogDb {
             FROM entries_v1''');
           await db.execute('DROP TABLE entries_v1');
         }
-        if (from < 5) await _syncMeasures(db, fresh: false);
+        if (from < 7) await _syncMeasures(db, fresh: false);
       },
       onCreate: (db, version) async {
         await db.execute(_createEntries);
@@ -176,6 +182,12 @@ class BodyLogDb {
   /// Shows or hides a standard measurement.
   Future<void> setFieldShown(String key, bool shown) => _db.update('fields', {'hidden': shown ? 0 : 1},
       where: 'key = ? AND built_in = 1', whereArgs: [key]);
+
+  /// Renames one of the custom measurements; other fields keep their names.
+  Future<void> renameField(String key, String label) async {
+    if (!customMeasureKeys.contains(key) || label.trim().isEmpty) return;
+    await _db.update('fields', {'label': label.trim()}, where: 'key = ?', whereArgs: [key]);
+  }
 
   // Settings
 

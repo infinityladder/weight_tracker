@@ -16,23 +16,28 @@ class BodyPart {
   /// Starting point for the size picker when nothing has been logged yet.
   final double typicalCm;
 
-  BodyPart mirrored() => BodyPart(200 - x2, 200 - x1, y, !right, typicalCm);
+  /// The same part on the other side of a body standing centred on [axis].
+  BodyPart mirrored([double axis = 100]) => BodyPart(2 * axis - x2, 2 * axis - x1, y, !right, typicalCm);
 }
 
-const _images = {BodyType.male: 'images/body_log_male.png', BodyType.female: 'images/body_log_female.png'};
+/// Each picture's centre line: the female figure stands a little right of the
+/// middle of her picture.
+const _centres = {BodyType.male: 100.0, BodyType.female: 102.0};
+
+const bodyImages = {BodyType.male: 'images/body_log_male.png', BodyType.female: 'images/body_log_female.png'};
 
 /// Where each body picture sits in the 200 x 440 box: full width, centred
 /// vertically.
-const _imageRects = {
+const bodyImageRects = {
   BodyType.male: Rect.fromLTWH(0, 38.37, 200, 363.27),
   BodyType.female: Rect.fromLTWH(0, 29.25, 200, 381.5),
 };
 
 /// Keyword -> where it sits on the male and female figures, most specific
 /// first ("forearm" before "arm", "above knee" before "knee"). Positions are
-/// measured on each body's picture as placed by [_imageRects].
+/// measured on each body's picture as placed by [bodyImageRects].
 const _parts = <(String, BodyPart, BodyPart)>[
-  ('neck', BodyPart(87, 112, 86, false, 38), BodyPart(89, 105, 96, false, 33)),
+  ('neck', BodyPart(87, 112, 90, false, 38), BodyPart(89, 106, 90, false, 33)),
   ('shoulder', BodyPart(50, 150, 114, true, 110), BodyPart(55, 145, 115, true, 100)),
   ('chest', BodyPart(60, 140, 138, false, 95), BodyPart(70, 131, 135, false, 90)),
   ('bust', BodyPart(60, 140, 138, false, 95), BodyPart(70, 131, 135, false, 90)),
@@ -40,12 +45,12 @@ const _parts = <(String, BodyPart, BodyPart)>[
   ('wrist', BodyPart(17, 34, 200, false, 16), BodyPart(20, 35, 201, false, 15)),
   ('bicep', BodyPart(43, 65, 150, false, 30), BodyPart(50, 68, 153, false, 27)),
   ('arm', BodyPart(43, 65, 150, false, 30), BodyPart(50, 68, 153, false, 27)),
-  ('belly', BodyPart(71, 128, 168, false, 85), BodyPart(72, 130, 179, false, 78)),
-  ('abdom', BodyPart(71, 128, 168, false, 85), BodyPart(72, 130, 179, false, 78)),
-  ('stomach', BodyPart(71, 128, 168, false, 85), BodyPart(72, 130, 179, false, 78)),
-  ('waist', BodyPart(71, 129, 186, true, 80), BodyPart(76, 124, 164, true, 72)),
-  ('hip', BodyPart(58, 142, 234, true, 98), BodyPart(59, 144, 214, true, 100)),
-  ('glute', BodyPart(58, 142, 234, true, 98), BodyPart(59, 144, 214, true, 100)),
+  ('belly', BodyPart(71, 129, 179, false, 85), BodyPart(72, 130, 179, false, 78)),
+  ('abdom', BodyPart(71, 129, 179, false, 85), BodyPart(72, 130, 179, false, 78)),
+  ('stomach', BodyPart(71, 129, 179, false, 85), BodyPart(72, 130, 179, false, 78)),
+  ('waist', BodyPart(71, 128, 170, true, 80), BodyPart(77, 125, 168, true, 72)),
+  ('hip', BodyPart(62, 138, 214, true, 98), BodyPart(59, 144, 214, true, 100)),
+  ('glute', BodyPart(62, 138, 214, true, 98), BodyPart(59, 144, 214, true, 100)),
   ('above knee', BodyPart(65, 90, 284, false, 42), BodyPart(66, 91, 280, false, 42)),
   ('thigh', BodyPart(61, 94, 258, false, 55), BodyPart(61, 95, 254, false, 57)),
   ('knee', BodyPart(62, 84, 302, false, 38), BodyPart(66, 89, 294, false, 37)),
@@ -56,6 +61,7 @@ const _parts = <(String, BodyPart, BodyPart)>[
 /// The part a field measures on [body], matched by name. "L-"/"left" and
 /// "R-"/"right" pick the side; null when the name isn't a known body part.
 BodyPart? partFor(MeasureField f, [BodyType body = BodyType.male]) {
+  if (f.custom) return null;
   final name = f.label.toLowerCase();
   final left = name.startsWith('l-') || name.startsWith('l ') || name.contains('left');
   final right = name.startsWith('r-') || name.startsWith('r ') || name.contains('right');
@@ -63,7 +69,7 @@ BodyPart? partFor(MeasureField f, [BodyType body = BodyType.male]) {
   for (final (keyword, male, female) in _parts) {
     if (!words.contains(keyword)) continue;
     final part = body == BodyType.female ? female : male;
-    if ((left && part.right) || (right && !part.right)) return part.mirrored();
+    if ((left && part.right) || (right && !part.right)) return part.mirrored(_centres[body]!);
     return part;
   }
   return null;
@@ -98,10 +104,12 @@ class BodyMap extends StatelessWidget {
     // Split into columns, each ordered top to bottom on the body; fields that
     // aren't a known part go at the end of the shorter column.
     final left = <(MeasureField, BodyPart?)>[], right = <(MeasureField, BodyPart?)>[];
-    final unplaced = <MeasureField>[];
+    final unplaced = <MeasureField>[], custom = <MeasureField>[];
     for (final f in fields) {
       final part = partFor(f, body);
-      if (part == null) {
+      if (f.custom) {
+        custom.add(f);
+      } else if (part == null) {
         unplaced.add(f);
       } else {
         (part.right ? right : left).add((f, part));
@@ -113,16 +121,16 @@ class BodyMap extends StatelessWidget {
       (left.length <= right.length ? left : right).add((f, null));
     }
 
-    return LayoutBuilder(builder: (context, c) {
+    final map = LayoutBuilder(builder: (context, c) {
       final w = c.maxWidth;
       final rows = math.max(1, math.max(left.length, right.length));
-      final cardW = math.min(132.0, (w - 24) * 0.34);
+      final cardW = math.min(120.0, (w - 24) * 0.31);
       final cardH = ((c.maxHeight - _gap * (rows - 1)) / rows).clamp(56.0, 76.0);
       final h = math.max(c.maxHeight, rows * cardH + (rows - 1) * _gap);
 
-      // Figure fills the middle; the outstretched hands may tuck slightly
-      // under the cards.
-      final s = math.min(h / 450, math.max(0.4, (w - 2 * cardW - 4) / 185));
+      // Figure fills the middle; the outstretched hands may tuck under the
+      // cards.
+      final s = math.min(h / 450, math.max(0.4, (w - 2 * cardW - 4) / 150));
       final ox = (w - 200 * s) / 2, oy = (h - 440 * s) / 2;
       Offset toCanvas(double x, double y) => Offset(ox + x * s, oy + y * s);
 
@@ -157,10 +165,12 @@ class BodyMap extends StatelessWidget {
             isRight ? toCanvas(part.x2, part.y) : toCanvas(part.x1, part.y),
             Offset(isRight ? w - cardW : cardW, columnTops[isRight]![i] + cardH / 2),
           );
-          // The size picker sheet covers roughly the lower 60%: slide the
-          // map up so both the card and the highlighted part stay visible.
+          // The size picker sheet covers roughly the lower half: slide the
+          // map up so both the card and the highlighted part stay visible,
+          // but never so far that the top of either slides out of view.
+          final top = math.min(columnTops[isRight]![i], part.y * s + oy - 12);
           final lowest = math.max(columnTops[isRight]![i] + cardH, part.y * s + oy + 12);
-          shift = math.max(0.0, lowest - c.maxHeight * 0.38);
+          shift = (lowest - c.maxHeight * 0.48).clamp(0.0, math.max(0.0, top - 8));
         }
       }
 
@@ -169,11 +179,11 @@ class BodyMap extends StatelessWidget {
         child: Stack(
           children: [
             Positioned(
-              left: ox + _imageRects[body]!.left * s,
-              top: oy + _imageRects[body]!.top * s,
-              width: _imageRects[body]!.width * s,
-              height: _imageRects[body]!.height * s,
-              child: Image.asset(_images[body]!, fit: BoxFit.contain, filterQuality: FilterQuality.medium),
+              left: ox + bodyImageRects[body]!.left * s,
+              top: oy + bodyImageRects[body]!.top * s,
+              width: bodyImageRects[body]!.width * s,
+              height: bodyImageRects[body]!.height * s,
+              child: Image.asset(bodyImages[body]!, fit: BoxFit.contain, filterQuality: FilterQuality.medium),
             ),
             Positioned.fill(
               child: CustomPaint(
@@ -209,6 +219,33 @@ class BodyMap extends StatelessWidget {
       );
       return h > c.maxHeight ? SingleChildScrollView(child: shifted) : shifted;
     });
+    if (custom.isEmpty) return map;
+
+    // Custom measurements aren't on the body: a row of cards underneath.
+    return Column(
+      children: [
+        Expanded(child: map),
+        const SizedBox(height: _gap),
+        SizedBox(
+          height: 64,
+          child: Row(
+            children: [
+              for (final (i, f) in custom.indexed) ...[
+                if (i > 0) const SizedBox(width: _gap),
+                Expanded(
+                  child: _PartCard(
+                    field: f,
+                    value: valueText(f),
+                    selected: f.key == selectedKey,
+                    onTap: () => onTap(f),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
   }
 }
 

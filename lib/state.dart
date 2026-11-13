@@ -183,6 +183,11 @@ class AppController extends Notifier<AppData> {
     await _reload();
   }
 
+  Future<void> renameField(String key, String label) async {
+    await _db.renameField(key, label);
+    await _reload();
+  }
+
   /// Sets the starting weigh-in ([date] null = first weigh-in). An existing
   /// goal moves its start weight to match.
   Future<void> setStartDate(DateTime? date) async {

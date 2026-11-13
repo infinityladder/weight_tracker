@@ -105,23 +105,19 @@ class _MeasureSheetState extends ConsumerState<_MeasureSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Stack(
-              alignment: Alignment.center,
+            Row(
               children: [
-                Text('SELECT A SIZE', textAlign: TextAlign.center, style: display(26)),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton.icon(
-                    onPressed: () => Navigator.pop(context, true),
-                    icon: const Icon(Icons.show_chart),
-                    label: Text('TREND', style: display(17, color: brandOrange)),
-                  ),
+                Expanded(child: Text(widget.field.label.toUpperCase(), style: display(26))),
+                TextButton.icon(
+                  onPressed: () => Navigator.pop(context, true),
+                  icon: const Icon(Icons.show_chart),
+                  label: Text('TREND', style: display(17, color: brandOrange)),
                 ),
               ],
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 8),
             Container(
-              padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
+              padding: const EdgeInsets.fromLTRB(18, 10, 18, 4),
               decoration: BoxDecoration(
                 color: scheme.surfaceContainerHighest.withValues(alpha: 0.6),
                 borderRadius: BorderRadius.circular(22),
@@ -129,8 +125,6 @@ class _MeasureSheetState extends ConsumerState<_MeasureSheet> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(widget.field.label.toUpperCase(), style: label(context)),
-                  const SizedBox(height: 6),
                   Center(
                     child: InkWell(
                       onTap: _type,
@@ -138,18 +132,18 @@ class _MeasureSheetState extends ConsumerState<_MeasureSheet> {
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
                         child: Text.rich(TextSpan(children: [
-                          TextSpan(text: _value.toStringAsFixed(1), style: display(52)),
-                          TextSpan(text: ' $unit', style: display(22, color: scheme.onSurfaceVariant)),
+                          TextSpan(text: _value.toStringAsFixed(1), style: display(44)),
+                          TextSpan(text: ' $unit', style: display(20, color: scheme.onSurfaceVariant)),
                         ])),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 2),
                   RulerPicker(value: _value, onChanged: (v) => setState(() => _value = v)),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
@@ -243,7 +237,7 @@ class _RulerPickerState extends State<RulerPicker> with SingleTickerProviderStat
         _ctrl.animateWith(FrictionSimulation(0.02, _ctrl.value, velocity)).whenComplete(_settle);
       },
       child: SizedBox(
-        height: 94,
+        height: 90,
         width: double.infinity,
         child: AnimatedBuilder(
           animation: _ctrl,
