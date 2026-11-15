@@ -1,4 +1,4 @@
-package com.bodylog.body_log
+package com.simplebodylog.app
 
 import io.flutter.embedding.android.FlutterActivity
 
