@@ -20,6 +20,8 @@ class AppData {
     this.window = WeighWindow.defaultWindow,
     this.startDate,
     this.body = BodyType.male,
+    this.heightCm,
+    this.bmiRanges = BmiRanges.standard,
   });
 
   /// Newest first.
@@ -36,6 +38,24 @@ class AppData {
 
   /// Figure drawn on the home screen.
   final BodyType body;
+
+  /// The user's height, for BMI; null until set.
+  final double? heightCm;
+
+  /// Cut-offs for the BMI category.
+  final BmiRanges bmiRanges;
+
+  /// BMI from the latest main weigh-in; null without a height or weight.
+  double? get latestBmi {
+    final h = heightCm, w = latestMain?.weightKg;
+    return h == null || w == null ? null : bmi(w, h);
+  }
+
+  /// Latest waist measurement divided by height; null without either.
+  double? get latestWaistRatio {
+    final h = heightCm, w = latestMeasurement('waist');
+    return h == null || w == null ? null : w / h;
+  }
 
   Units get units => Units(unitSystem);
 
@@ -114,7 +134,8 @@ class AppData {
     return logged.lastWhere((m) => !m.$1.isAfter(start), orElse: () => logged.first);
   }
 
-  AppData copyWith({UnitSystem? unitSystem, WeighWindow? window, BodyType? body}) => AppData(
+  AppData copyWith({UnitSystem? unitSystem, WeighWindow? window, BodyType? body, double? Function()? heightCm, BmiRanges? bmiRanges}) =>
+      AppData(
         entries: entries,
         fields: fields,
         goal: goal,
@@ -122,6 +143,8 @@ class AppData {
         window: window ?? this.window,
         startDate: startDate,
         body: body ?? this.body,
+        heightCm: heightCm == null ? this.heightCm : heightCm(),
+        bmiRanges: bmiRanges ?? this.bmiRanges,
       );
 }
 
@@ -131,6 +154,8 @@ Future<AppData> loadAppData(BodyLogDb db) async {
   return AppData(
     startDate: start == null ? null : DateTime.tryParse(start),
     body: (await db.setting('body')) == 'female' ? BodyType.female : BodyType.male,
+    heightCm: double.tryParse(await db.setting('height_cm') ?? ''),
+    bmiRanges: (await db.setting('bmi_ranges')) == 'asian' ? BmiRanges.asian : BmiRanges.standard,
     entries: await db.entries(),
     fields: await db.fields(),
     goal: goalJson == null ? null : Goal.fromJson(jsonDecode(goalJson) as Map<String, dynamic>),
@@ -178,6 +203,17 @@ class AppController extends Notifier<AppData> {
     await _db.setSetting('body', body.name);
   }
 
+  /// Sets the height used for BMI; null clears it.
+  Future<void> setHeight(double? cm) async {
+    state = state.copyWith(heightCm: () => cm);
+    await _db.setSetting('height_cm', cm?.toString());
+  }
+
+  Future<void> setBmiRanges(BmiRanges ranges) async {
+    state = state.copyWith(bmiRanges: ranges);
+    await _db.setSetting('bmi_ranges', ranges.name);
+  }
+
   Future<void> setFieldShown(String key, bool shown) async {
     await _db.setFieldShown(key, shown);
     await _reload();
@@ -201,6 +237,8 @@ class AppController extends Notifier<AppData> {
       window: state.window,
       startDate: date,
       body: state.body,
+      heightCm: state.heightCm,
+      bmiRanges: state.bmiRanges,
     ).startMain;
     if (g != null && start != null) {
       final moved = Goal(targetWeightKg: g.targetWeightKg, targetDate: g.targetDate, startWeightKg: start.weightKg!);

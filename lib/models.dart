@@ -148,5 +148,33 @@ class GoalProgress {
       daysLeft > 0 && !reached ? (target - currentKg) / (daysLeft / 7) : null;
 }
 
+/// Body mass index from a weight and height.
+double bmi(double kg, double heightCm) => kg / ((heightCm / 100) * (heightCm / 100));
+
+/// Which BMI cut-offs to use. [asian] lowers the overweight and obese
+/// thresholds to 23 and 27.5 (WHO 2004 expert consultation; NICE uses them
+/// for people of Asian, Middle Eastern, Black African and African-Caribbean
+/// family background), since health risks start at a lower BMI.
+enum BmiRanges { standard, asian }
+
+/// Adult BMI category (WHO).
+String bmiCategory(double bmi, [BmiRanges ranges = BmiRanges.standard]) {
+  final asian = ranges == BmiRanges.asian;
+  if (bmi < 18.5) return 'Underweight';
+  if (bmi < (asian ? 23 : 25)) return 'Healthy';
+  if (bmi < (asian ? 27.5 : 30)) return 'Overweight';
+  return 'Obese';
+}
+
+/// NICE category for a waist-to-height ratio. Under 0.4 isn't graded by
+/// NICE; it's shown as low.
+String waistRatioCategory(double ratio) => ratio < 0.4
+    ? 'Low'
+    : ratio < 0.5
+        ? 'Healthy'
+        : ratio < 0.6
+            ? 'Increased risk'
+            : 'High risk';
+
 /// Which figure the body map draws.
 enum BodyType { male, female }

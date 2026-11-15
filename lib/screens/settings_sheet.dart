@@ -97,6 +97,31 @@ class _SettingsSheetState extends ConsumerState<_SettingsSheet> {
           const SizedBox(height: 8),
           BodyTypePicker(data: data),
           const SizedBox(height: 24),
+          Text('HEIGHT', style: label(context)),
+          const SizedBox(height: 4),
+          Text('Used to work out your BMI and waist-to-height ratio.', style: TextStyle(color: scheme.onSurfaceVariant)),
+          const SizedBox(height: 10),
+          // Recreated when the units change so the boxes show the new units.
+          HeightField(key: ValueKey(data.unitSystem), data: data),
+          const SizedBox(height: 24),
+          Text('BMI RANGES', style: label(context)),
+          const SizedBox(height: 4),
+          Text(
+            'Asian ranges count 23+ as overweight and 27.5+ as obese, as health risks start at a lower BMI. '
+            'Also advised for Middle Eastern, Black African and African-Caribbean backgrounds.',
+            style: TextStyle(color: scheme.onSurfaceVariant),
+          ),
+          const SizedBox(height: 10),
+          SegmentedButton<BmiRanges>(
+            showSelectedIcon: false,
+            segments: const [
+              ButtonSegment(value: BmiRanges.standard, label: Text('STANDARD')),
+              ButtonSegment(value: BmiRanges.asian, label: Text('ASIAN')),
+            ],
+            selected: {data.bmiRanges},
+            onSelectionChanged: (s) => ref.read(appProvider.notifier).setBmiRanges(s.first),
+          ),
+          const SizedBox(height: 24),
           Text('MEASUREMENTS', style: label(context)),
           const SizedBox(height: 4),
           Text(
@@ -227,6 +252,76 @@ class _CustomMeasureRowState extends ConsumerState<CustomMeasureRow> {
           activeTrackColor: brandOrange,
           onChanged: (on) => notifier.setFieldShown(widget.field.key, on),
         ),
+      ],
+    );
+  }
+}
+
+/// Height in cm, or feet + inches. Saved as it's typed; clearing it removes
+/// the height (and the BMI).
+class HeightField extends ConsumerStatefulWidget {
+  const HeightField({super.key, required this.data});
+
+  final AppData data;
+
+  @override
+  ConsumerState<HeightField> createState() => _HeightFieldState();
+}
+
+class _HeightFieldState extends ConsumerState<HeightField> {
+  late final bool _metric = widget.data.units.metric;
+  late final TextEditingController _main, _inches;
+
+  @override
+  void initState() {
+    super.initState();
+    final cm = widget.data.heightCm;
+    if (_metric) {
+      _main = TextEditingController(text: cm == null ? '' : cm.toStringAsFixed(cm % 1 == 0 ? 0 : 1));
+      _inches = TextEditingController();
+    } else {
+      final total = cm == null ? null : (cm / Units.cmPerIn).round();
+      _main = TextEditingController(text: total == null ? '' : '${total ~/ 12}');
+      _inches = TextEditingController(text: total == null ? '' : '${total % 12}');
+    }
+  }
+
+  @override
+  void dispose() {
+    _main.dispose();
+    _inches.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    double? cm;
+    if (_metric) {
+      cm = parseNumber(_main.text);
+    } else {
+      final ft = parseNumber(_main.text) ?? 0, inch = double.tryParse(_inches.text.trim().replaceAll(',', '.')) ?? 0;
+      cm = ft + inch > 0 ? (ft * 12 + inch) * Units.cmPerIn : null;
+    }
+    // Ignore half-typed values like "1" so the BMI doesn't jump around.
+    if (cm != null && (cm < 50 || cm > 272)) return;
+    ref.read(appProvider.notifier).setHeight(cm);
+  }
+
+  Widget _box(TextEditingController c, String suffix) => TextField(
+        controller: c,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        style: display(24, weight: FontWeight.w800),
+        decoration: InputDecoration(suffixText: suffix),
+        onChanged: (_) => _save(),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    if (_metric) return _box(_main, 'cm');
+    return Row(
+      children: [
+        Expanded(child: _box(_main, 'ft')),
+        const SizedBox(width: 12),
+        Expanded(child: _box(_inches, 'in')),
       ],
     );
   }

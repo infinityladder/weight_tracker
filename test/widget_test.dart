@@ -76,6 +76,37 @@ void main() {
     expect(shifted.mainWeights.map((e) => e.id), [2]);
   });
 
+  test('BMI uses the latest main weigh-in and the height', () {
+    final d = DateTime(2026, 1, 1);
+    final entries = [
+      Entry(id: 1, date: d, minutes: 7 * 60, weightKg: 72),
+      Entry(id: 2, date: d, minutes: 20 * 60, weightKg: 90), // a note, not the main record
+    ]..sort(Entry.newestFirst);
+    final data = AppData(entries: entries, fields: const [], goal: null, unitSystem: UnitSystem.metric);
+    expect(data.latestBmi, isNull); // no height yet
+    final tall = data.copyWith(heightCm: () => 180);
+    expect(tall.latestBmi, closeTo(22.2, 0.05));
+    expect(tall.copyWith(window: const WeighWindow(0, 23 * 60 + 59)).heightCm, 180); // kept
+    expect(tall.copyWith(heightCm: () => null).latestBmi, isNull);
+    expect([for (final b in <double>[18.4, 18.5, 24.9, 25, 29.9, 30]) bmiCategory(b)],
+        ['Underweight', 'Healthy', 'Healthy', 'Overweight', 'Overweight', 'Obese']);
+    expect([for (final b in <double>[18.4, 22.9, 23, 27.4, 27.5]) bmiCategory(b, BmiRanges.asian)],
+        ['Underweight', 'Healthy', 'Overweight', 'Overweight', 'Obese']);
+    expect(tall.copyWith(bmiRanges: BmiRanges.asian).copyWith(heightCm: () => 170).bmiRanges, BmiRanges.asian); // kept
+  });
+
+  test('waist-to-height ratio uses the latest waist and the height', () {
+    final entries = [
+      Entry(date: DateTime(2026, 1, 2), minutes: 480, measurements: const {'waist': 90}),
+      Entry(date: DateTime(2026, 1, 1), minutes: 480, measurements: const {'waist': 95}),
+    ];
+    final data = AppData(entries: entries, fields: const [], goal: null, unitSystem: UnitSystem.metric);
+    expect(data.latestWaistRatio, isNull); // no height yet
+    expect(data.copyWith(heightCm: () => 180).latestWaistRatio, 0.5);
+    expect([for (final r in <double>[0.39, 0.4, 0.49, 0.5, 0.59, 0.6]) waistRatioCategory(r)],
+        ['Low', 'Healthy', 'Healthy', 'Increased risk', 'Increased risk', 'High risk']);
+  });
+
   test('start weigh-in is the first main weigh-in on or after the chosen date', () {
     final entries = [
       Entry(id: 1, date: DateTime(2026, 1, 1), minutes: 420, weightKg: 82),

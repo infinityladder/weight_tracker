@@ -214,6 +214,20 @@ class _WeightHeader extends StatelessWidget {
                 ),
               ],
             ),
+            if (data.latestBmi != null || data.latestWaistRatio != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 18,
+                  children: [
+                    if (data.latestBmi case final b?)
+                      _HealthStat('BMI', b.toStringAsFixed(1), bmiCategory(b, data.bmiRanges)),
+                    if (data.latestWaistRatio case final r?)
+                      _HealthStat('WAIST/HEIGHT', r.toStringAsFixed(2), waistRatioCategory(r)),
+                  ],
+                ),
+              ),
             if (delta != null)
               Builder(builder: (context) {
                 final flat = delta.abs() < 0.05;
@@ -243,6 +257,25 @@ class _WeightHeader extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// A name, value and category, e.g. "BMI 22.4 HEALTHY". The value is green
+/// when the category is healthy and orange otherwise.
+class _HealthStat extends StatelessWidget {
+  const _HealthStat(this.name, this.value, this.category);
+
+  final String name, value, category;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text.rich(
+      TextSpan(children: [
+        TextSpan(text: '$name ', style: label(context)),
+        TextSpan(text: value, style: display(18, color: category == 'Healthy' ? goodGreen : brandOrange)),
+        TextSpan(text: '  ${category.toUpperCase()}', style: label(context)),
+      ]),
     );
   }
 }

@@ -53,26 +53,14 @@ class _MeasureSheetState extends ConsumerState<_MeasureSheet> {
   }
 
   Future<void> _type() async {
-    final ctrl = TextEditingController(text: _value.toStringAsFixed(1));
-    final unit = ref.read(appProvider).units.length;
     final typed = await showDialog<double>(
       context: context,
-      builder: (d) => AlertDialog(
-        title: Text(widget.field.label),
-        content: TextField(
-          controller: ctrl,
-          autofocus: true,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: InputDecoration(suffixText: unit),
-          onSubmitted: (t) => Navigator.pop(d, parseNumber(t)),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(d), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(d, parseNumber(ctrl.text)), child: const Text('OK')),
-        ],
+      builder: (_) => _TypeValueDialog(
+        label: widget.field.label,
+        unit: ref.read(appProvider).units.length,
+        initial: _value,
       ),
     );
-    ctrl.dispose();
     if (typed != null) setState(() => _value = typed);
   }
 
@@ -306,4 +294,46 @@ class _RulerPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_RulerPainter old) => old.value != value || old.tick != tick;
+}
+
+/// Box for typing a value instead of using the ruler. Owns its controller so
+/// it's disposed only after the closing animation.
+class _TypeValueDialog extends StatefulWidget {
+  const _TypeValueDialog({required this.label, required this.unit, required this.initial});
+
+  final String label, unit;
+  final double initial;
+
+  @override
+  State<_TypeValueDialog> createState() => _TypeValueDialogState();
+}
+
+class _TypeValueDialogState extends State<_TypeValueDialog> {
+  // Selected so typing replaces it.
+  late final _ctrl = TextEditingController(text: widget.initial.toStringAsFixed(1))
+    ..selection = TextSelection(baseOffset: 0, extentOffset: widget.initial.toStringAsFixed(1).length);
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.label),
+      content: TextField(
+        controller: _ctrl,
+        autofocus: true,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        decoration: InputDecoration(suffixText: widget.unit),
+        onSubmitted: (t) => Navigator.pop(context, parseNumber(t)),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        TextButton(onPressed: () => Navigator.pop(context, parseNumber(_ctrl.text)), child: const Text('OK')),
+      ],
+    );
+  }
 }
