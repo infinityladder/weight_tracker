@@ -16,7 +16,6 @@ Future<bool> showMeasureSheet(BuildContext context, MeasureField field) async =>
     await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      showDragHandle: true,
       builder: (_) => _MeasureSheet(field: field),
     ) ??
     false;
@@ -88,27 +87,39 @@ class _MeasureSheetState extends ConsumerState<_MeasureSheet> {
     final unit = ref.watch(appProvider.select((d) => d.units.length));
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // A slimmer drag handle than the built-in one.
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: scheme.onSurfaceVariant.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
             Row(
               children: [
-                Expanded(child: Text(widget.field.label.toUpperCase(), style: display(26))),
+                Expanded(child: Text(widget.field.label.toUpperCase(), style: display(21))),
                 TextButton.icon(
                   onPressed: () => Navigator.pop(context, true),
-                  icon: const Icon(Icons.show_chart),
-                  label: Text('TREND', style: display(17, color: brandOrange)),
+                  icon: const Icon(Icons.show_chart, size: 18),
+                  label: Text('TREND', style: display(15, color: brandOrange)),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             Container(
-              padding: const EdgeInsets.fromLTRB(18, 10, 18, 4),
+              padding: const EdgeInsets.fromLTRB(14, 6, 14, 2),
               decoration: BoxDecoration(
                 color: scheme.surfaceContainerHighest.withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(22),
+                borderRadius: BorderRadius.circular(18),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -120,35 +131,43 @@ class _MeasureSheetState extends ConsumerState<_MeasureSheet> {
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
                         child: Text.rich(TextSpan(children: [
-                          TextSpan(text: _value.toStringAsFixed(1), style: display(44)),
-                          TextSpan(text: ' $unit', style: display(20, color: scheme.onSurfaceVariant)),
+                          TextSpan(text: _value.toStringAsFixed(1), style: display(34)),
+                          TextSpan(text: ' $unit', style: display(16, color: scheme.onSurfaceVariant)),
                         ])),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 2),
                   RulerPicker(value: _value, onChanged: (v) => setState(() => _value = v)),
                 ],
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             Row(
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: _pickDate,
-                    icon: const Icon(Icons.calendar_today, size: 20),
-                    label: Text(DateFormat('d MMM yyyy').format(_date), style: display(20, weight: FontWeight.w800)),
+                    icon: const Icon(Icons.calendar_today, size: 18),
+                    label: Text(DateFormat('d MMM yyyy').format(_date), style: display(17, weight: FontWeight.w800)),
                     style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(58),
+                      minimumSize: const Size.fromHeight(48),
                       foregroundColor: scheme.onSurface,
                       side: BorderSide(color: scheme.outlineVariant, width: 2),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     ),
                   ),
                 ),
                 const SizedBox(width: 12),
-                Expanded(child: FilledButton(onPressed: _confirm, child: const Text('CONFIRM'))),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: _confirm,
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(48),
+                      textStyle: display(20, weight: FontWeight.w800, spacing: 1),
+                    ),
+                    child: const Text('CONFIRM'),
+                  ),
+                ),
               ],
             ),
           ],
@@ -225,7 +244,7 @@ class _RulerPickerState extends State<RulerPicker> with SingleTickerProviderStat
         _ctrl.animateWith(FrictionSimulation(0.02, _ctrl.value, velocity)).whenComplete(_settle);
       },
       child: SizedBox(
-        height: 90,
+        height: 72,
         width: double.infinity,
         child: AnimatedBuilder(
           animation: _ctrl,
@@ -252,7 +271,7 @@ class _RulerPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final cx = size.width / 2;
-    const baseY = 56.0;
+    const baseY = 42.0;
     final half = cx / pxPerUnit + 0.2;
     final paint = Paint()..strokeCap = StrokeCap.round;
     for (var i = ((value - half) * 10).floor(); i <= ((value + half) * 10).ceil(); i++) {
@@ -261,7 +280,7 @@ class _RulerPainter extends CustomPainter {
       // Fade ticks towards the edges.
       final fade = (1 - ((x - cx).abs() / cx)).clamp(0.15, 1.0);
       final major = i % 10 == 0, mid = i % 5 == 0;
-      final len = major ? 40.0 : (mid ? 28.0 : 18.0);
+      final len = major ? 30.0 : (mid ? 21.0 : 13.0);
       paint
         ..color = tick.withValues(alpha: 0.6 * fade)
         ..strokeWidth = major ? 2.5 : 1.6;
@@ -269,15 +288,15 @@ class _RulerPainter extends CustomPainter {
       if (major) {
         final tp = TextPainter(
           text: TextSpan(
-              text: '${i ~/ 10}', style: display(18, weight: FontWeight.w700, color: text.withValues(alpha: fade))),
+              text: '${i ~/ 10}', style: display(15, weight: FontWeight.w700, color: text.withValues(alpha: fade))),
           textDirection: TextDirection.ltr,
         )..layout();
-        tp.paint(canvas, Offset(x - tp.width / 2, baseY + 15));
+        tp.paint(canvas, Offset(x - tp.width / 2, baseY + 11));
       }
     }
     // Centre indicator.
     canvas.drawLine(
-        Offset(cx, baseY - 50),
+        Offset(cx, baseY - 38),
         Offset(cx, baseY + 2),
         Paint()
           ..color = brandOrange
@@ -285,9 +304,9 @@ class _RulerPainter extends CustomPainter {
           ..strokeCap = StrokeCap.round);
     canvas.drawPath(
         Path()
-          ..moveTo(cx - 8, baseY + 12)
-          ..lineTo(cx + 8, baseY + 12)
-          ..lineTo(cx, baseY + 3)
+          ..moveTo(cx - 6, baseY + 9)
+          ..lineTo(cx + 6, baseY + 9)
+          ..lineTo(cx, baseY + 2)
           ..close(),
         Paint()..color = brandOrange);
   }

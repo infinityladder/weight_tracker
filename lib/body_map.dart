@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import 'body_outline.dart';
 import 'models.dart';
 import 'theme.dart';
 
@@ -95,7 +96,7 @@ class BodyMap extends StatelessWidget {
   final void Function(MeasureField f) onTap;
   final String? selectedKey;
 
-  static const _gap = 10.0;
+  static const _gap = 8.0;
 
   @override
   Widget build(BuildContext context) {
@@ -124,35 +125,84 @@ class BodyMap extends StatelessWidget {
     final map = LayoutBuilder(builder: (context, c) {
       final w = c.maxWidth;
       final rows = math.max(1, math.max(left.length, right.length));
-      final cardW = math.min(120.0, (w - 24) * 0.31);
-      final cardH = ((c.maxHeight - _gap * (rows - 1)) / rows).clamp(56.0, 76.0);
+      // Narrow enough to leave the body room; values like "104.5 cm" still fit.
+      final cardW = ((w - 24) * 0.25).clamp(86.0, 120.0);
+      final cardH = ((c.maxHeight - _gap * (rows - 1)) / rows).clamp(52.0, 58.0);
       final h = math.max(c.maxHeight, rows * cardH + (rows - 1) * _gap);
 
-      // Figure fills the middle; the outstretched hands may tuck under the
-      // cards.
-      final s = math.min(h / 450, math.max(0.4, (w - 2 * cardW - 4) / 150));
-      final ox = (w - 200 * s) / 2, oy = (h - 440 * s) / 2;
-      Offset toCanvas(double x, double y) => Offset(ox + x * s, oy + y * s);
+      final pic = bodyImageRects[body]!, outline = bodyOutlines[body]!;
+      const clear = 6.0; // space kept between a card and the body
 
-      // Each card sits level with its part, pushed down just enough to clear the
-      // card above, then pulled back up if the column runs off the bottom.
-      List<double> topsFor(List<(MeasureField, BodyPart?)> column) {
-        final tops = <double>[];
-        var next = 0.0;
-        for (final (_, part) in column) {
-          final want = part == null ? next : part.y * s + oy - cardH / 2;
-          tops.add(math.max(want, next));
-          next = tops.last + cardH + _gap;
+      // The body's leftmost and rightmost points between two heights in the
+      // 200 x 440 box; null where there's no body.
+      (int, int)? extent(double y0, double y1) {
+        final i0 = math.max(0, (y0 / outlineStep).floor());
+        final i1 = math.min(outline.length - 1, (y1 / outlineStep).ceil());
+        int? lo, hi;
+        for (var i = i0; i <= i1; i++) {
+          final row = outline[i];
+          if (row == null) continue;
+          lo = lo == null ? row.$1 : math.min(lo, row.$1);
+          hi = hi == null ? row.$2 : math.max(hi, row.$2);
         }
-        var limit = h - cardH;
-        for (var i = tops.length - 1; i >= 0; i--) {
-          tops[i] = math.min(tops[i], limit);
-          limit = tops[i] - cardH - _gap;
-        }
-        return tops;
+        return lo == null ? null : (lo, hi!);
       }
 
-      final columnTops = {false: topsFor(left), true: topsFor(right)};
+      // Cards at scale [s]: each sits level with its part, slides down past
+      // any of the body it would cover, clears the card above, and the column
+      // is pulled back up if it runs off the bottom. Null if a card still
+      // covers the body.
+      ({double ox, double oy, Map<bool, List<double>> tops})? layout(double s, {bool check = true}) {
+        final ox = (w - 200 * s) / 2, oy = (h - pic.height * s) / 2 - pic.top * s;
+        bool covers(bool isRight, double top) {
+          if (!check) return false;
+          final e = extent((top - oy) / s, (top + cardH - oy) / s);
+          if (e == null) return false;
+          return isRight ? ox + e.$2 * s > w - cardW - clear : ox + e.$1 * s < cardW + clear;
+        }
+
+        List<double>? topsFor(bool isRight, List<(MeasureField, BodyPart?)> column) {
+          final tops = <double>[];
+          var next = 0.0;
+          for (final (_, part) in column) {
+            final want = math.max(part == null ? next : part.y * s + oy - cardH / 2, next);
+            // The nearest free spot, below or (not past the card above) above.
+            var top = want;
+            for (var d = 0.0; covers(isRight, top) && d < h; d += 4) {
+              if (!covers(isRight, want + d)) {
+                top = want + d;
+              } else if (want - d >= next && !covers(isRight, want - d)) {
+                top = want - d;
+              }
+            }
+            tops.add(top);
+            next = top + cardH + _gap;
+          }
+          var limit = h - cardH;
+          for (var i = tops.length - 1; i >= 0; i--) {
+            tops[i] = math.min(tops[i], limit);
+            limit = tops[i] - cardH - _gap;
+          }
+          return tops.any((t) => covers(isRight, t)) ? null : tops;
+        }
+
+        final l = topsFor(false, left), r = topsFor(true, right);
+        return l == null || r == null ? null : (ox: ox, oy: oy, tops: {false: l, true: r});
+      }
+
+      // The biggest body no card covers: from filling the height down to the
+      // size that fits between the columns at every height.
+      final sFull = (h - 8) / pic.height;
+      final sBeside = math.max(0.3, (w - 2 * cardW - 2 * clear) / 200);
+      var s = sFull;
+      var placed = layout(s);
+      while (placed == null && s > sBeside) {
+        s = math.max(sBeside, s - 0.02);
+        placed = layout(s);
+      }
+      placed ??= layout(s, check: false)!;
+      final (ox, oy, columnTops) = (placed.ox, placed.oy, placed.tops);
+      Offset toCanvas(double x, double y) => Offset(ox + x * s, oy + y * s);
 
       (Offset, Offset, Offset, Offset)? highlight;
       var shift = 0.0;
@@ -290,8 +340,10 @@ class _PartCard extends StatelessWidget {
                   child: parts == null
                       ? Text('+ ADD', style: display(22, color: selected ? Colors.white : brandOrange))
                       : Text.rich(TextSpan(children: [
-                          TextSpan(text: parts.first, style: display(26, color: fg)),
-                          TextSpan(text: ' ${parts.skip(1).join(' ')}', style: display(15, color: muted)),
+                          TextSpan(text: parts.first, style: numberStyle(21, color: fg)),
+                          TextSpan(
+                              text: ' ${parts.skip(1).join(' ')}',
+                              style: numberStyle(13, color: muted, weight: FontWeight.w500)),
                         ])),
                 ),
               ],

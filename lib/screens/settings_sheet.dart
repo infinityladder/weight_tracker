@@ -97,30 +97,50 @@ class _SettingsSheetState extends ConsumerState<_SettingsSheet> {
           const SizedBox(height: 8),
           BodyTypePicker(data: data),
           const SizedBox(height: 24),
-          Text('HEIGHT', style: label(context)),
-          const SizedBox(height: 4),
-          Text('Used to work out your BMI and waist-to-height ratio.', style: TextStyle(color: scheme.onSurfaceVariant)),
-          const SizedBox(height: 10),
-          // Recreated when the units change so the boxes show the new units.
-          HeightField(key: ValueKey(data.unitSystem), data: data),
-          const SizedBox(height: 24),
-          Text('BMI RANGES', style: label(context)),
+          Text('HEALTH', style: label(context)),
           const SizedBox(height: 4),
           Text(
-            'Asian ranges count 23+ as overweight and 27.5+ as obese, as health risks start at a lower BMI. '
-            'Also advised for Middle Eastern, Black African and African-Caribbean backgrounds.',
+            'Pick what the Health screen shows. With none on, its button is hidden.',
             style: TextStyle(color: scheme.onSurfaceVariant),
           ),
-          const SizedBox(height: 10),
-          SegmentedButton<BmiRanges>(
-            showSelectedIcon: false,
-            segments: const [
-              ButtonSegment(value: BmiRanges.standard, label: Text('STANDARD')),
-              ButtonSegment(value: BmiRanges.asian, label: Text('ASIAN')),
-            ],
-            selected: {data.bmiRanges},
-            onSelectionChanged: (s) => ref.read(appProvider.notifier).setBmiRanges(s.first),
-          ),
+          const SizedBox(height: 4),
+          for (final (a, title) in [
+            (HealthAnalysis.bmi, 'BMI'),
+            (HealthAnalysis.waistRatio, 'Waist-to-height ratio'),
+            (HealthAnalysis.waistHip, 'Waist-to-hip ratio'),
+          ])
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(title.toUpperCase(), style: display(19, weight: FontWeight.w800)),
+              value: data.healthShown.contains(a),
+              activeTrackColor: brandOrange,
+              onChanged: (on) => ref.read(appProvider.notifier).setHealthShown(a, on),
+            ),
+          if (data.healthShown.any((a) => a.usesHeight)) ...[
+            const SizedBox(height: 6),
+            Text('Height', style: TextStyle(color: scheme.onSurfaceVariant)),
+            const SizedBox(height: 8),
+            // Recreated when the units change so the boxes show the new units.
+            HeightField(key: ValueKey(data.unitSystem), data: data),
+          ],
+          if (data.healthShown.contains(HealthAnalysis.bmi)) ...[
+            const SizedBox(height: 16),
+            Text(
+              'BMI ranges. Asian ranges count 23+ as overweight and 27.5+ as obese, as health risks start at a '
+              'lower BMI; also advised for Middle Eastern, Black African and African-Caribbean backgrounds.',
+              style: TextStyle(color: scheme.onSurfaceVariant),
+            ),
+            const SizedBox(height: 10),
+            SegmentedButton<BmiRanges>(
+              showSelectedIcon: false,
+              segments: const [
+                ButtonSegment(value: BmiRanges.standard, label: Text('STANDARD')),
+                ButtonSegment(value: BmiRanges.asian, label: Text('ASIAN')),
+              ],
+              selected: {data.bmiRanges},
+              onSelectionChanged: (s) => ref.read(appProvider.notifier).setBmiRanges(s.first),
+            ),
+          ],
           const SizedBox(height: 24),
           Text('MEASUREMENTS', style: label(context)),
           const SizedBox(height: 4),

@@ -23,6 +23,16 @@ TextStyle display(double size, {FontWeight weight = FontWeight.w900, Color? colo
       letterSpacing: spacing,
     );
 
+/// Plain upright numbers: readable without shouting.
+TextStyle numberStyle(double size, {Color? color, FontWeight weight = FontWeight.w600}) => TextStyle(
+      fontFamily: 'Barlow',
+      fontWeight: weight,
+      fontSize: size,
+      height: 1.0,
+      color: color,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
+
 /// Small uppercase section label.
 TextStyle label(BuildContext context, {Color? color}) => display(15,
     weight: FontWeight.w700,

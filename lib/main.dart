@@ -7,6 +7,7 @@ import 'db.dart';
 import 'models.dart';
 import 'screens/trend_screen.dart';
 import 'screens/data_transfer.dart';
+import 'screens/health_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/log_screen.dart';
 import 'screens/measure_sheet.dart';
@@ -142,6 +143,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     label: 'TREND',
                     onTap: () => _push(const TrendScreen()),
                   ),
+                  if (data.healthShown.isNotEmpty) ...[
+                    const SizedBox(width: 10),
+                    _NavTile(
+                      icon: Icons.monitor_heart_outlined,
+                      label: 'HEALTH',
+                      onTap: () => _push(const HealthScreen()),
+                    ),
+                  ],
                 ],
               ),
             ],
@@ -166,6 +175,9 @@ class _WeightHeader extends StatelessWidget {
     final u = data.units;
     final latest = data.latestMain, first = data.startMain;
     final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    // A little smaller on short screens so the body keeps its room.
+    // Brand style, but modest: a little smaller on short screens.
+    final big = (MediaQuery.sizeOf(context).height * 0.068).clamp(48.0, 60.0);
     // Shown whenever there's more than one weigh-in, so the start can always be changed.
     final delta = latest != null && first != null && data.mainWeights.length > 1
         ? latest.weightKg! - first.weightKg!
@@ -184,9 +196,9 @@ class _WeightHeader extends StatelessWidget {
               textBaseline: TextBaseline.alphabetic,
               children: [
                 Text(latest == null ? '—' : u.fmtWeight(latest.weightKg!),
-                    style: display(88, color: brandOrange, spacing: -2)),
+                    style: display(big, color: brandOrange, spacing: -1)),
                 const SizedBox(width: 6),
-                Text(u.weight.toUpperCase(), style: display(28, color: muted)),
+                Text(u.weight.toUpperCase(), style: display(big * 0.34, color: muted)),
               ],
             ),
             Row(
@@ -214,20 +226,6 @@ class _WeightHeader extends StatelessWidget {
                 ),
               ],
             ),
-            if (data.latestBmi != null || data.latestWaistRatio != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: 18,
-                  children: [
-                    if (data.latestBmi case final b?)
-                      _HealthStat('BMI', b.toStringAsFixed(1), bmiCategory(b, data.bmiRanges)),
-                    if (data.latestWaistRatio case final r?)
-                      _HealthStat('WAIST/HEIGHT', r.toStringAsFixed(2), waistRatioCategory(r)),
-                  ],
-                ),
-              ),
             if (delta != null)
               Builder(builder: (context) {
                 final flat = delta.abs() < 0.05;
@@ -257,25 +255,6 @@ class _WeightHeader extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-/// A name, value and category, e.g. "BMI 22.4 HEALTHY". The value is green
-/// when the category is healthy and orange otherwise.
-class _HealthStat extends StatelessWidget {
-  const _HealthStat(this.name, this.value, this.category);
-
-  final String name, value, category;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text.rich(
-      TextSpan(children: [
-        TextSpan(text: '$name ', style: label(context)),
-        TextSpan(text: value, style: display(18, color: category == 'Healthy' ? goodGreen : brandOrange)),
-        TextSpan(text: '  ${category.toUpperCase()}', style: label(context)),
-      ]),
     );
   }
 }

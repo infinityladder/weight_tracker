@@ -22,6 +22,7 @@ class AppData {
     this.body = BodyType.male,
     this.heightCm,
     this.bmiRanges = BmiRanges.standard,
+    this.healthShown = const {HealthAnalysis.bmi, HealthAnalysis.waistRatio, HealthAnalysis.waistHip},
   });
 
   /// Newest first.
@@ -45,10 +46,19 @@ class AppData {
   /// Cut-offs for the BMI category.
   final BmiRanges bmiRanges;
 
+  /// Analyses switched on for the Health screen.
+  final Set<HealthAnalysis> healthShown;
+
   /// BMI from the latest main weigh-in; null without a height or weight.
   double? get latestBmi {
     final h = heightCm, w = latestMain?.weightKg;
     return h == null || w == null ? null : bmi(w, h);
+  }
+
+  /// Latest waist divided by latest hips; null without either.
+  double? get latestWaistHipRatio {
+    final w = latestMeasurement('waist'), hips = latestMeasurement('hips');
+    return w == null || hips == null ? null : w / hips;
   }
 
   /// Latest waist measurement divided by height; null without either.
@@ -134,7 +144,7 @@ class AppData {
     return logged.lastWhere((m) => !m.$1.isAfter(start), orElse: () => logged.first);
   }
 
-  AppData copyWith({UnitSystem? unitSystem, WeighWindow? window, BodyType? body, double? Function()? heightCm, BmiRanges? bmiRanges}) =>
+  AppData copyWith({UnitSystem? unitSystem, WeighWindow? window, BodyType? body, double? Function()? heightCm, BmiRanges? bmiRanges, Set<HealthAnalysis>? healthShown}) =>
       AppData(
         entries: entries,
         fields: fields,
@@ -145,6 +155,7 @@ class AppData {
         body: body ?? this.body,
         heightCm: heightCm == null ? this.heightCm : heightCm(),
         bmiRanges: bmiRanges ?? this.bmiRanges,
+        healthShown: healthShown ?? this.healthShown,
       );
 }
 
@@ -156,6 +167,7 @@ Future<AppData> loadAppData(BodyLogDb db) async {
     body: (await db.setting('body')) == 'female' ? BodyType.female : BodyType.male,
     heightCm: double.tryParse(await db.setting('height_cm') ?? ''),
     bmiRanges: (await db.setting('bmi_ranges')) == 'asian' ? BmiRanges.asian : BmiRanges.standard,
+    healthShown: HealthAnalysis.decode(await db.setting('health')),
     entries: await db.entries(),
     fields: await db.fields(),
     goal: goalJson == null ? null : Goal.fromJson(jsonDecode(goalJson) as Map<String, dynamic>),
@@ -214,6 +226,14 @@ class AppController extends Notifier<AppData> {
     await _db.setSetting('bmi_ranges', ranges.name);
   }
 
+  /// Switches one analysis on the Health screen on or off.
+  Future<void> setHealthShown(HealthAnalysis analysis, bool on) async {
+    final shown = {...state.healthShown};
+    on ? shown.add(analysis) : shown.remove(analysis);
+    state = state.copyWith(healthShown: shown);
+    await _db.setSetting('health', HealthAnalysis.encode(shown));
+  }
+
   Future<void> setFieldShown(String key, bool shown) async {
     await _db.setFieldShown(key, shown);
     await _reload();
@@ -239,6 +259,7 @@ class AppController extends Notifier<AppData> {
       body: state.body,
       heightCm: state.heightCm,
       bmiRanges: state.bmiRanges,
+      healthShown: state.healthShown,
     ).startMain;
     if (g != null && start != null) {
       final moved = Goal(targetWeightKg: g.targetWeightKg, targetDate: g.targetDate, startWeightKg: start.weightKg!);

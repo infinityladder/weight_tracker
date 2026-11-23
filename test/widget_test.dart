@@ -95,6 +95,27 @@ void main() {
     expect(tall.copyWith(bmiRanges: BmiRanges.asian).copyWith(heightCm: () => 170).bmiRanges, BmiRanges.asian); // kept
   });
 
+  test('health analyses are stored as a list; never set means all', () {
+    expect(HealthAnalysis.decode(null), HealthAnalysis.values.toSet());
+    expect(HealthAnalysis.decode(''), isEmpty);
+    expect(HealthAnalysis.decode('waistRatio,gone'), {HealthAnalysis.waistRatio});
+    expect(HealthAnalysis.encode({HealthAnalysis.waistRatio, HealthAnalysis.bmi}), 'bmi,waistRatio');
+    expect(HealthAnalysis.values.where((a) => !a.usesHeight), [HealthAnalysis.waistHip]);
+  });
+
+  test('waist-to-hip ratio uses the WHO limit for the body', () {
+    final data = AppData(
+      entries: [Entry(date: DateTime(2026, 1, 1), minutes: 480, measurements: const {'waist': 87, 'hips': 100})],
+      fields: const [],
+      goal: null,
+      unitSystem: UnitSystem.metric,
+    );
+    expect(data.latestWaistHipRatio, 0.87);
+    expect(waistHipCategory(0.87, BodyType.male), 'Healthy');
+    expect(waistHipCategory(0.87, BodyType.female), 'Increased risk');
+    expect((waistHipCategory(0.899, BodyType.male), waistHipCategory(0.90, BodyType.male)), ('Healthy', 'Increased risk'));
+  });
+
   test('waist-to-height ratio uses the latest waist and the height', () {
     final entries = [
       Entry(date: DateTime(2026, 1, 2), minutes: 480, measurements: const {'waist': 90}),

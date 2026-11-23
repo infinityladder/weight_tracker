@@ -176,5 +176,30 @@ String waistRatioCategory(double ratio) => ratio < 0.4
             ? 'Increased risk'
             : 'High risk';
 
+/// WHO (2008) waist-to-hip limit above which health risk is substantially
+/// increased: 0.90 for men, 0.85 for women.
+double waistHipLimit(BodyType body) => body == BodyType.male ? 0.90 : 0.85;
+
+/// WHO category for a waist-to-hip ratio.
+String waistHipCategory(double ratio, BodyType body) => ratio < waistHipLimit(body) ? 'Healthy' : 'Increased risk';
+
+/// Analyses the Health screen can show; the user picks which in Settings.
+enum HealthAnalysis {
+  bmi,
+  waistRatio,
+  waistHip;
+
+  /// Needs the user's height.
+  bool get usesHeight => this != waistHip;
+
+  /// Stored as a comma list; unknown names are ignored. Null (never set)
+  /// means all of them.
+  static Set<HealthAnalysis> decode(String? s) => s == null
+      ? values.toSet()
+      : {for (final n in s.split(',')) ...values.where((a) => a.name == n)};
+
+  static String encode(Set<HealthAnalysis> shown) => [for (final a in values) if (shown.contains(a)) a.name].join(',');
+}
+
 /// Which figure the body map draws.
 enum BodyType { male, female }
