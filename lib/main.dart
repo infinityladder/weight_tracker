@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -79,6 +81,58 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       return v == null ? null : '${u.fmtLength(v)} ${u.length}';
     }
 
+    final header = _WeightHeader(
+      data: data,
+      onTap: () => data.latestMain == null ? showQuickEntry(context) : _push(const TrendScreen()),
+      onLog: () => showQuickEntry(context),
+    );
+    final map = data.visibleFields.isEmpty
+        ? Center(
+            child: OutlinedButton.icon(
+              onPressed: () => showSettingsSheet(context),
+              icon: const Icon(Icons.tune),
+              label: const Text('CHOOSE MEASUREMENTS'),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: brandOrange, width: 2),
+                textStyle: display(20, weight: FontWeight.w800),
+              ),
+            ),
+          )
+        : BodyMap(
+            fields: data.visibleFields,
+            valueText: valueText,
+            selectedKey: _selected,
+            onTap: _measure,
+            body: data.body,
+          );
+    final nav = Row(
+      children: [
+        _NavTile(
+          icon: Icons.table_rows_rounded,
+          label: 'VIEW DATA',
+          onTap: () => _push(const ViewDataScreen()),
+        ),
+        const SizedBox(width: 10),
+        _NavTile(
+          icon: Icons.show_chart,
+          label: 'TREND',
+          onTap: () => _push(const TrendScreen()),
+        ),
+        if (data.healthShown.isNotEmpty) ...[
+          const SizedBox(width: 10),
+          _NavTile(
+            icon: Icons.monitor_heart_outlined,
+            label: 'HEALTH',
+            onTap: () => _push(const HealthScreen()),
+          ),
+        ],
+      ],
+    );
+    final size = MediaQuery.sizeOf(context);
+    // Landscape tablets: weight and navigation on the left, the body map on
+    // the right at a phone-like width, so the cards stay next to the figure.
+    final wide = size.width >= 840 && size.width > size.height;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('BODY LOG'),
@@ -100,61 +154,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         top: false,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-          child: Column(
-            children: [
-              _WeightHeader(
-                data: data,
-                onTap: () => data.latestMain == null ? showQuickEntry(context) : _push(const TrendScreen()),
-                onLog: () => showQuickEntry(context),
-              ),
-              const SizedBox(height: 12),
-              Expanded(
-                child: data.visibleFields.isEmpty
-                    ? Center(
-                        child: OutlinedButton.icon(
-                          onPressed: () => showSettingsSheet(context),
-                          icon: const Icon(Icons.tune),
-                          label: const Text('CHOOSE MEASUREMENTS'),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: brandOrange, width: 2),
-                            textStyle: display(20, weight: FontWeight.w800),
-                          ),
-                        ),
-                      )
-                    : BodyMap(
-                        fields: data.visibleFields,
-                        valueText: valueText,
-                        selectedKey: _selected,
-                        onTap: _measure,
-                        body: data.body,
+          child: wide
+              ? Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Expanded(child: Center(child: header)),
+                          ConstrainedBox(constraints: const BoxConstraints(maxWidth: 520), child: nav),
+                        ],
                       ),
-              ),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  _NavTile(
-                    icon: Icons.table_rows_rounded,
-                    label: 'VIEW DATA',
-                    onTap: () => _push(const ViewDataScreen()),
-                  ),
-                  const SizedBox(width: 10),
-                  _NavTile(
-                    icon: Icons.show_chart,
-                    label: 'TREND',
-                    onTap: () => _push(const TrendScreen()),
-                  ),
-                  if (data.healthShown.isNotEmpty) ...[
-                    const SizedBox(width: 10),
-                    _NavTile(
-                      icon: Icons.monitor_heart_outlined,
-                      label: 'HEALTH',
-                      onTap: () => _push(const HealthScreen()),
                     ),
+                    const SizedBox(width: 24),
+                    SizedBox(width: math.min(560, size.width * 0.5), child: map),
                   ],
-                ],
-              ),
-            ],
-          ),
+                )
+              : Column(
+                  children: [
+                    header,
+                    const SizedBox(height: 12),
+                    Expanded(child: map),
+                    const SizedBox(height: 14),
+                    nav,
+                  ],
+                ),
         ),
       ),
     );
@@ -189,6 +212,7 @@ class _WeightHeader extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Row(
               mainAxisSize: MainAxisSize.min,

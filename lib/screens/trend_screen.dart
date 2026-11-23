@@ -50,7 +50,7 @@ class _TrendScreenState extends ConsumerState<TrendScreen> {
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+        padding: readablePadding(context),
         children: [
           TrendCard(data: data, metric: _metric, onMetric: (m) => setState(() => _metric = m), chartHeight: 280),
           const SizedBox(height: 16),

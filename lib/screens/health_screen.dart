@@ -33,7 +33,7 @@ class HealthScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('HEALTH')),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+        padding: readablePadding(context),
         children: [
           if (shown.isEmpty)
             SportCard(

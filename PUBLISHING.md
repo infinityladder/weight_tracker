@@ -48,32 +48,14 @@ Before every upload, raise the build number in `pubspec.yaml`
 
 ## Store listing
 
-**Short description** (80 characters max):
+The listing text is in [store-listing/store_listing.md](store-listing/store_listing.md).
 
-> Log your weight and body measurements, see trends, and track your goals.
+**Graphics:**
 
-**Full description:**
-
-> Simple Body Log is a private tracker for your weight and body
-> measurements.
->
-> - Log your weight in seconds
-> - Record up to 16 measurements on a body map, from neck, chest and waist to
->   biceps, thighs and calves
-> - See your progress on trend charts and in your history
-> - Set a goal and see how far you've come since your start date
-> - Use metric or imperial units
-> - Light and dark themes
-> - Import and export your data as CSV
->
-> No account, no ads, no tracking. Everything stays on your phone.
-
-**Graphics needed:**
-
-- App icon, 512 × 512 PNG: `logo/body-log-icon-512.png`
+- App icon, 512 × 512, 32-bit PNG: `logo/play-store-icon-512.png`
 - Feature graphic, 1024 × 500 PNG or JPG (still to make)
-- At least 2 phone screenshots (portrait, 1080 × 1920 or similar). Take them
-  from the release build on a phone or emulator.
+- Screenshots: `store-listing/screenshots/<newest date>/marketing/`, with
+  `phone/`, `tablet_7/` and `tablet_10/` folders. Upload `01`…`08` in order.
 
 ## Testing track
 

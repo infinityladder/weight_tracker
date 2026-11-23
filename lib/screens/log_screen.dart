@@ -148,7 +148,7 @@ class _LogScreenState extends ConsumerState<LogScreen> {
     final windowText = '${timeLabel(context, data.window.start)}–${timeLabel(context, data.window.end)}';
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+      padding: readablePadding(context),
       children: [
         Row(
           children: [

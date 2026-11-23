@@ -8,6 +8,16 @@ import 'theme.dart';
 String timeLabel(BuildContext context, int minutes) =>
     TimeOfDay(hour: minutes ~/ 60, minute: minutes % 60).format(context);
 
+/// Widest a column of cards, rows or fields gets; tablets centre it.
+const readableWidth = 720.0;
+
+/// List padding that keeps the content [readableWidth] wide at most and
+/// centred, while the whole screen still scrolls.
+EdgeInsets readablePadding(BuildContext context, {double top = 4, double bottom = 24}) {
+  final side = math.max(16.0, (MediaQuery.sizeOf(context).width - readableWidth) / 2);
+  return EdgeInsets.fromLTRB(side, top, side, bottom);
+}
+
 /// Rounded card with a section label and optional trailing action.
 class SportCard extends StatelessWidget {
   const SportCard({super.key, this.title, this.trailing, required this.child});
