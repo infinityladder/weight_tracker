@@ -1,10 +1,6 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
 
 import 'csv_import.dart';
 import 'db.dart';
@@ -318,16 +314,6 @@ class AppController extends Notifier<AppData> {
       skippedColumns: parsed.skippedColumns,
       badRows: parsed.badRows,
     );
-  }
-
-  Future<void> exportCsv() async {
-    final dir = await getTemporaryDirectory();
-    final file = File(p.join(dir.path, 'body_log_${dateKey(DateTime.now())}.csv'));
-    await file.writeAsString(buildCsv(state));
-    await SharePlus.instance.share(ShareParams(
-      files: [XFile(file.path, mimeType: 'text/csv')],
-      subject: 'Body log export',
-    ));
   }
 }
 

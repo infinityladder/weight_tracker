@@ -1,19 +1,35 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../csv_import.dart';
+import '../models.dart';
 import '../state.dart';
 
-/// Shares the whole log as a CSV file.
+/// Saves the whole log as a CSV file wherever the user picks (Downloads, a
+/// folder, Drive...).
 Future<void> exportData(BuildContext context, WidgetRef ref) async {
-  if (ref.read(appProvider).entries.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Nothing to export yet')));
+  final messenger = ScaffoldMessenger.of(context);
+  final data = ref.read(appProvider);
+  if (data.entries.isEmpty) {
+    messenger.showSnackBar(const SnackBar(content: Text('Nothing to export yet')));
     return;
   }
-  await ref.read(appProvider.notifier).exportCsv();
+  final name = 'body_log_${dateKey(DateTime.now())}.csv';
+  try {
+    final saved = await FilePicker.saveFile(
+      dialogTitle: 'Save your Body log',
+      fileName: name,
+      bytes: Uint8List.fromList(utf8.encode(buildCsv(data))),
+      mimeType: 'text/csv',
+    );
+    if (saved != null) messenger.showSnackBar(SnackBar(content: Text('Saved $name')));
+  } on Exception {
+    messenger.showSnackBar(const SnackBar(content: Text('Couldn\'t save the file. Try another folder.')));
+  }
 }
 
 /// Picks a CSV (a Body log export), merges it into the log and reports what happened.
