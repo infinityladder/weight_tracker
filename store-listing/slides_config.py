@@ -73,3 +73,13 @@ SLIDES = [
          sub="Kg or lb. Import and export CSV. Stays on your phone.",
          shots=[("08-imperial", "dark"), ("08-units", "light")], hue="yours", ground="light", layout="pair"),
 ]
+
+# Feature graphic (scripts/make_feature_graphic.py): 1024x500, the app's name rather than a slide
+# headline, female body behind the male one so both show.
+FEATURE = dict(
+    icon="logo/body-log-icon-512.png",
+    head=["SIMPLE", "BODY LOG"], accent_line=1,
+    sub=["Weight and body measurements,", "on one body map."],
+    shots=[("07-female", "light"), ("01-home", "dark")],
+    hue="body", ground="dark",
+)

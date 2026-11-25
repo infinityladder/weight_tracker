@@ -55,7 +55,8 @@ The listing text is in [store-listing/store_listing.md](store-listing/store_list
 **Graphics:**
 
 - App icon, 512 × 512, 32-bit PNG: `logo/play-store-icon-512.png`
-- Feature graphic, 1024 × 500 PNG or JPG (still to make)
+- Feature graphic: `store-listing/screenshots/<newest date>/marketing/feature-graphic.png`
+  (`python scripts/make_feature_graphic.py store-listing/slides_config.py`)
 - Screenshots: `store-listing/screenshots/<newest date>/marketing/`, with
   `phone/`, `tablet_7/` and `tablet_10/` folders. Upload `01`…`08` in order.
 
