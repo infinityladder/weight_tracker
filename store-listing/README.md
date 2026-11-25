@@ -8,8 +8,8 @@ changes how the app handles data, money or users, follow the change map below.**
 | --- | --- | --- |
 | [store_listing.md](store_listing.md) | Listing text: name, short and full description — the source of truth for every claim | by hand / the skills |
 | [screenshots.md](screenshots.md) | Screenshot generation 2026-11-23, 8 slides per format and the claim each makes, feature graphic, capture script, demo data | `android_store_screenshots/` |
-| [privacy-policy.md](privacy-policy.md) | Policy URL and source, the answer sheet it was written from, its sections, every place it is linked | `play_privacy_policy/` |
-| [play-console.md](play-console.md) | Every App content answer, store settings, product page | `play_console_checklist/` |
+| [privacy-and-product-page.md](privacy-and-product-page.md) | The privacy policy (URL, the answer sheet it was written from, its sections, every place it is linked) and the product page | `privacy_policy_and_product_page/` |
+| [play-console.md](play-console.md) | Every App content answer and store settings | `play_console_checklist/` |
 
 ## Change map
 

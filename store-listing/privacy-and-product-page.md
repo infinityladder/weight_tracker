@@ -1,8 +1,8 @@
-# Privacy policy record — Simple Body Log
+# Privacy policy and product page record — Simple Body Log
 
-What the privacy policy says, what it was written from, and every place it is linked. Written
-by `development_readmes/play_privacy_policy/`. Before changing how the app handles data, read
-the change map in [README.md](README.md) and section 9 of the skill.
+What the privacy policy says, what it was written from, every place it is linked, and the
+product page. Written by `development_readmes/privacy_policy_and_product_page/`. Before changing
+how the app handles data, read the change map in [README.md](README.md) and section 10 of the skill.
 
 - **Live URL:** https://www.infinityladdertechnologies.com/products/simple-body-log/privacy/
 - **Source:** `infinityladder.github.io/products/simple-body-log/privacy/index.html`
@@ -63,3 +63,19 @@ the change map in [README.md](README.md) and section 9 of the skill.
 - Slide 8 sub: "Stays on your phone."
 - Product page: lead ("keep every entry on your own phone. No account needed") and the last feature line.
 - `PRIVACY.md` summary bullets.
+
+## Product page
+
+- **Live URL:** https://www.infinityladdertechnologies.com/products/simple-body-log/ · source
+  `infinityladder.github.io/products/simple-body-log/index.html` (site commit `fdd728b`) · card on
+  `products/index.html`
+- **Store action:** "Coming soon to Google Play" (no badge until the app is public); Privacy policy link
+- **Images:** `images/products/simple-body-log/` — icon (512), feature graphic (social preview),
+  gallery: 01-home-dark, 02-ruler-light, 03-trend-dark, 04-goal-light, 05-health-dark,
+  07-female-light (generation 2026-11-23)
+- **Claims on the page** (match the listing): cards *Body map*, *Trend and goal*, *Health screen*;
+  the listing's feature list; lead "keep every entry on your own phone. No account needed";
+  the health disclaimer under the gallery
+- **Used as:** Play Console Store settings → Website ([play-console.md](play-console.md) item 11)
+- **At launch:** swap "Coming soon" for the Play badge
+  (`https://play.google.com/store/apps/details?id=com.simplebodylog.app`) on the page and the index card

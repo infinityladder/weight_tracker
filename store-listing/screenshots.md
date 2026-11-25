@@ -51,5 +51,5 @@ measurements, on one body map."; the female body (07-female, light) behind the m
 
 - Play Console → Main store listing: {{date and formats — fill in when uploaded}}
 - Website product page gallery: 01-home-dark, 02-ruler-light, 03-trend-dark, 04-goal-light,
-  05-health-dark, 07-female-light (phone raw captures, via `make_product_images.py`); feature
+  05-health-dark, 07-female-light (phone raw captures, via the privacy and product page skill's `make_product_images.py`); feature
   graphic as the page's social preview image.

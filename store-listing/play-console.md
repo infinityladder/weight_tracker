@@ -9,7 +9,7 @@ map is in [README.md](README.md).
 
 | # | Item | Status | Answer given | Reason (evidence) | Changes when |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Privacy policy | done 2026-11-25 | https://www.infinityladdertechnologies.com/products/simple-body-log/privacy/ | [privacy-policy.md](privacy-policy.md) | Any data handling change |
+| 1 | Privacy policy | done 2026-11-25 | https://www.infinityladdertechnologies.com/products/simple-body-log/privacy/ | [privacy-and-product-page.md](privacy-and-product-page.md) | Any data handling change |
 | 2 | Sign in details | done 2026-11-25 | **No**, no part of the app is restricted | No sign-in, no purchases, no codes, PINs or biometrics | Paid "remove ads" (planned): Yes + a way for reviewers to see it |
 | 3 | Ads | done 2026-11-25 | **No, my app does not contain ads** | No ads SDK; no AD_ID permission | Ads (planned) |
 | 4 | Content rating | done 2026-11-25 | Email hello@infinityladdertechnologies.com; *All Other App Types*; every answer No (downloaded content, user content sharing, online content, age-restricted products, location sharing, digital purchases, rewards/crypto, browser, news/educational). Ratings: {{fill in from the Summary}} | Plain tracker; body art is ordinary sportswear; privacy link opens one fixed page | "Remove ads" = digital purchase → Yes |

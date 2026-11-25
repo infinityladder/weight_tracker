@@ -33,8 +33,8 @@ purchases, cloud sync or accounts:
 
 - [store_listing.md](store-listing/store_listing.md) — the listing text.
 - [screenshots.md](store-listing/screenshots.md) — slides, feature graphic, how to rebuild them.
-- [privacy-policy.md](store-listing/privacy-policy.md) — the hosted policy, what it was
-  written from, where it is linked.
+- [privacy-and-product-page.md](store-listing/privacy-and-product-page.md) — the hosted
+  policy (what it was written from, where it is linked) and the product page.
 - [play-console.md](store-listing/play-console.md) — every App content answer and the reason.
 
 Graphics to upload:
