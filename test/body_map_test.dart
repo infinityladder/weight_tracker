@@ -15,7 +15,7 @@ const _torsoAndLegs = ['Neck', 'Shoulders', 'Chest', 'Waist', 'Abdomen', 'Hips',
 const _arm = ['L-Bicep', 'L-Forearm'];
 
 void main() {
-  for (final body in BodyType.values) {
+  for (final body in Figure.values) {
     testWidgets('every standard measure sits on the ${body.name} picture', (tester) async {
       final (width, height, pixels) = (await tester.runAsync(() async {
         final codec = await ui.instantiateImageCodec(File(bodyImages[body]!).readAsBytesSync());
@@ -67,7 +67,7 @@ void main() {
 
   // Cards never cover the body, on small and large screens, with a few or all
   // measurements switched on.
-  for (final body in BodyType.values) {
+  for (final body in Figure.values) {
     for (final all in [false, true]) {
       for (final size in const [Size(328, 560), Size(352, 448), Size(352, 640), Size(379, 700), Size(768, 1000)]) {
         testWidgets('${body.name}, ${all ? 'all' : 'default'} measurements, $size: no card covers the body',
@@ -87,7 +87,7 @@ void main() {
                 alignment: Alignment.topLeft,
                 child: SizedBox.fromSize(
                   size: size,
-                  child: BodyMap(fields: fields, valueText: (_) => null, onTap: (_) {}, body: body),
+                  child: BodyMap(fields: fields, valueText: (_) => null, onTap: (_) {}, figure: body),
                 ),
               ),
             ),
@@ -95,7 +95,7 @@ void main() {
           final image = tester.getRect(find.byType(Image));
           final rect = bodyImageRects[body]!;
           final s = image.width / rect.width;
-          final oy = image.top - rect.top * s;
+          final (ox, oy) = (image.left - rect.left * s, image.top - rect.top * s);
           final outline = bodyOutlines[body]!;
           final covered = <String>[];
           for (final f in fields.where((f) => !f.custom)) {
@@ -104,7 +104,7 @@ void main() {
               final i = ((y - oy) / s / outlineStep).floor();
               if (i < 0 || i >= outline.length || outline[i] == null) continue;
               final (lo, hi) = outline[i]!;
-              final (bodyLeft, bodyRight) = (image.left + lo * s, image.left + hi * s);
+              final (bodyLeft, bodyRight) = (ox + lo * s, ox + hi * s);
               if (bodyRight > card.left + 1 && bodyLeft < card.right - 1) {
                 covered.add('${f.label} at y $y');
                 break;

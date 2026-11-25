@@ -180,8 +180,8 @@ void main() {
     // Every standard measure has a place on the body, on the side its name says.
     for (final (key, label) in BodyLogDb.measures) {
       if (customMeasureKeys.contains(key)) continue;
-      for (final body in BodyType.values) {
-        final part = partFor(f(label), body);
+      for (final figure in Figure.values) {
+        final part = partFor(f(label), figure);
         expect(part, isNotNull, reason: label);
         if (label.startsWith('L-')) expect(part!.right, isFalse, reason: label);
         if (label.startsWith('R-')) expect(part!.right, isTrue, reason: label);
@@ -189,8 +189,8 @@ void main() {
     }
     // The female waist is narrower and hips wider than the male ones.
     double width(BodyPart p) => p.x2 - p.x1;
-    expect(width(partFor(f('Waist'), BodyType.female)!), lessThan(width(partFor(f('Waist'))!)));
-    expect(width(partFor(f('Hips'), BodyType.female)!), greaterThan(width(partFor(f('Hips'))!)));
+    expect(width(partFor(f('Waist'), Figure.female)!), lessThan(width(partFor(f('Waist'))!)));
+    expect(width(partFor(f('Hips'), Figure.female)!), greaterThan(width(partFor(f('Hips'))!)));
     // Custom measurements stay off the body, whatever they're called.
     const custom = MeasureField(key: 'c_custom_1', label: 'Left calf', builtIn: true, hidden: false, sortOrder: 0);
     expect(partFor(custom), isNull);

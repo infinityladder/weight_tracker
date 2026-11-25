@@ -37,7 +37,7 @@ class _MeasureSheetState extends ConsumerState<_MeasureSheet> {
   void initState() {
     super.initState();
     final data = ref.read(appProvider);
-    final cm = data.latestMeasurement(widget.field.key) ?? partFor(widget.field, data.body)?.typicalCm ?? 50;
+    final cm = data.latestMeasurement(widget.field.key) ?? partFor(widget.field, data.figure)?.typicalCm ?? 50;
     _value = (data.units.lengthOut(cm) * 10).roundToDouble() / 10;
   }
 

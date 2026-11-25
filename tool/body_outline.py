@@ -18,14 +18,18 @@ from PIL import Image
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 STEP = 2  # box units per row
 
-# Must match bodyImageRects in lib/body_map.dart: (top, height); width is 200.
+# Must match bodyImages and bodyImageRects in lib/body_map.dart:
+# Figure name -> (picture, (left, top, width, height)).
 BODIES = {
-    'male': ('images/body_log_male.png', 38.37, 363.27),
-    'female': ('images/body_log_female.png', 29.25, 381.5),
+    'male': ('images/body_log_male.png', (0, 38.37, 200, 363.27)),
+    'female': ('images/body_log_female.png', (0, 29.25, 200, 381.5)),
+    'maleDark': ('images/body_log_male_dark_skin.png', (-9.94, 43.22, 213.26, 356.25)),
+    'femaleDark': ('images/body_log_female_dark_skin.png', (4.91, 24.51, 198.99, 391.86)),
 }
 
 
-def outline(path, top, height):
+def outline(path, rect):
+    left, top, width, height = rect
     alpha = np.asarray(Image.open(os.path.join(ROOT, path)).convert('RGBA'))[:, :, 3] > 128
     ph, pw = alpha.shape
     rows = []
@@ -38,7 +42,7 @@ def outline(path, top, height):
         if len(cols) == 0:
             rows.append(None)
         else:
-            rows.append((round(cols[0] / pw * 200), round((cols[-1] + 1) / pw * 200)))
+            rows.append((round(left + cols[0] / pw * width), round(left + (cols[-1] + 1) / pw * width)))
     return rows
 
 
@@ -52,12 +56,12 @@ def main():
         '/// rightmost solid point of the body, or null where there is none.',
         f'const outlineStep = {STEP};',
         '',
-        'const bodyOutlines = <BodyType, List<(int, int)?>>{',
+        'const bodyOutlines = <Figure, List<(int, int)?>>{',
     ]
-    for name, (path, top, height) in BODIES.items():
-        rows = outline(path, top, height)
+    for name, (path, rect) in BODIES.items():
+        rows = outline(path, rect)
         cells = ', '.join('null' if r is None else f'({r[0]}, {r[1]})' for r in rows)
-        out.append(f'  BodyType.{name}: [{cells}],')
+        out.append(f'  Figure.{name}: [{cells}],')
     out.append('};')
     dest = os.path.join(ROOT, 'lib', 'body_outline.dart')
     with open(dest, 'w', encoding='utf-8', newline='\n') as f:

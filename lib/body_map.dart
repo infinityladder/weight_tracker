@@ -9,7 +9,7 @@ import 'theme.dart';
 /// Where a body part is measured: a horizontal band across the figure in its
 /// 200 x 440 design box, and which column its card sits in.
 class BodyPart {
-  const BodyPart(this.x1, this.x2, this.y, this.right, this.typicalCm);
+  const BodyPart(this.x1, this.x2, this.y, this.right, this.typicalCm, {this.axis});
 
   final double x1, x2, y;
   final bool right;
@@ -17,68 +17,158 @@ class BodyPart {
   /// Starting point for the size picker when nothing has been logged yet.
   final double typicalCm;
 
-  /// The same part on the other side of a body standing centred on [axis].
-  BodyPart mirrored([double axis = 100]) => BodyPart(2 * axis - x2, 2 * axis - x1, y, !right, typicalCm);
+  /// Mirror line for this part when the picture's limbs aren't quite
+  /// symmetrical; null uses the figure's centre.
+  final double? axis;
+
+  /// The same part on the other side of a body standing centred on [centre].
+  BodyPart mirrored([double centre = 100]) {
+    final a = axis ?? centre;
+    return BodyPart(2 * a - x2, 2 * a - x1, y, !right, typicalCm, axis: axis);
+  }
 }
 
-/// Each picture's centre line: the female figure stands a little right of the
-/// middle of her picture.
-const _centres = {BodyType.male: 100.0, BodyType.female: 102.0};
+/// Each picture's centre line.
+const _centres = {Figure.male: 100.0, Figure.female: 102.0, Figure.maleDark: 100.0, Figure.femaleDark: 99.5};
 
-const bodyImages = {BodyType.male: 'images/body_log_male.png', BodyType.female: 'images/body_log_female.png'};
-
-/// Where each body picture sits in the 200 x 440 box: full width, centred
-/// vertically.
-const bodyImageRects = {
-  BodyType.male: Rect.fromLTWH(0, 38.37, 200, 363.27),
-  BodyType.female: Rect.fromLTWH(0, 29.25, 200, 381.5),
+const bodyImages = {
+  Figure.male: 'images/body_log_male.png',
+  Figure.female: 'images/body_log_female.png',
+  Figure.maleDark: 'images/body_log_male_dark_skin.png',
+  Figure.femaleDark: 'images/body_log_female_dark_skin.png',
 };
 
-/// Keyword -> where it sits on the male and female figures, most specific
-/// first ("forearm" before "arm", "above knee" before "knee"). Positions are
-/// measured on each body's picture as placed by [bodyImageRects], at the
-/// standard tape landmarks (ISO 8559-1, WHO): neck below the Adam's apple;
-/// shoulders round the widest part of the deltoids; chest at the nipples, bust
-/// at its fullest; upper arm halfway from shoulder tip to elbow; forearm at its
-/// widest just below the elbow; wrist at the crease; waist halfway between the
-/// lowest rib and the top of the hip bone; belly at the navel; hips round the
-/// widest part of the buttocks; thigh just below the buttock fold; above knee
-/// just over the kneecap; knee across the middle of the kneecap; calf at its
-/// widest; ankle at its narrowest.
-const _parts = <(String, BodyPart, BodyPart)>[
-  ('neck', BodyPart(87, 112, 90, false, 38), BodyPart(89, 106, 90, false, 33)),
-  ('shoulder', BodyPart(48, 152, 124, true, 110), BodyPart(54, 147, 124, true, 100)),
-  ('chest', BodyPart(60, 140, 138, false, 95), BodyPart(70, 131, 135, false, 90)),
-  ('bust', BodyPart(60, 140, 138, false, 95), BodyPart(70, 131, 135, false, 90)),
-  ('forearm', BodyPart(30, 53, 178, false, 27), BodyPart(36, 57, 178, false, 23)),
-  ('wrist', BodyPart(17, 34, 200, false, 16), BodyPart(20, 35, 201, false, 15)),
-  ('bicep', BodyPart(43, 65, 148, false, 30), BodyPart(54, 69, 148, false, 27)),
-  ('arm', BodyPart(43, 65, 148, false, 30), BodyPart(54, 69, 148, false, 27)),
-  ('belly', BodyPart(71, 129, 178, false, 85), BodyPart(72, 130, 178, false, 78)),
-  ('abdom', BodyPart(71, 129, 178, false, 85), BodyPart(72, 130, 178, false, 78)),
-  ('stomach', BodyPart(71, 129, 178, false, 85), BodyPart(72, 130, 178, false, 78)),
-  ('waist', BodyPart(72, 128, 172, true, 80), BodyPart(76, 125, 170, true, 72)),
-  ('hip', BodyPart(62, 138, 214, true, 98), BodyPart(60, 144, 214, true, 100)),
-  ('glute', BodyPart(62, 138, 214, true, 98), BodyPart(60, 144, 214, true, 100)),
-  ('above knee', BodyPart(64, 91, 276, false, 42), BodyPart(65, 92, 276, false, 42)),
-  ('thigh', BodyPart(61, 94, 258, false, 55), BodyPart(61, 95, 254, false, 57)),
-  ('knee', BodyPart(65, 88, 292, false, 38), BodyPart(66, 89, 292, false, 37)),
-  ('calf', BodyPart(114, 141, 322, true, 37), BodyPart(119, 146, 322, true, 35)),
-  ('ankle', BodyPart(123, 135, 366, true, 22), BodyPart(130, 142, 366, true, 21)),
+/// Where each body picture sits in the 200 x 440 box. The light pictures fill
+/// the width; the dark ones have wider margins, so they're scaled to the same
+/// body height (the male one as tall as his outstretched hands allow) and
+/// centred on the same spot.
+const bodyImageRects = {
+  Figure.male: Rect.fromLTWH(0, 38.37, 200, 363.27),
+  Figure.female: Rect.fromLTWH(0, 29.25, 200, 381.5),
+  Figure.maleDark: Rect.fromLTWH(-9.94, 43.22, 213.26, 356.25),
+  Figure.femaleDark: Rect.fromLTWH(4.91, 24.51, 198.99, 391.86),
+};
+
+/// Keyword -> where it sits on each figure, most specific first ("forearm"
+/// before "arm", "above knee" before "knee"). Positions are measured on each
+/// picture as placed by [bodyImageRects], at the standard tape landmarks
+/// (ISO 8559-1, WHO): neck below the Adam's apple; shoulders round the widest
+/// part of the deltoids; chest at the nipples, bust at its fullest; upper arm
+/// halfway from shoulder tip to elbow (or just below, where the arm first
+/// clears the chest); forearm at its widest just below the elbow; wrist at the
+/// crease; waist halfway between the lowest rib and the top of the hip bone;
+/// belly at the navel; hips round the widest part of the buttocks; thigh just
+/// below the buttock fold; above knee just over the kneecap; knee across the
+/// middle of the kneecap; calf at its widest; ankle at its narrowest.
+const _parts = <(String, Map<Figure, BodyPart>)>[
+  ('neck', {
+    Figure.male: BodyPart(87, 112, 90, false, 38),
+    Figure.female: BodyPart(89, 106, 90, false, 33),
+    Figure.maleDark: BodyPart(88, 112, 98, false, 38),
+    Figure.femaleDark: BodyPart(88, 106, 96, false, 33),
+  }),
+  ('shoulder', {
+    Figure.male: BodyPart(48, 152, 124, true, 110),
+    Figure.female: BodyPart(54, 147, 124, true, 100),
+    Figure.maleDark: BodyPart(50, 149, 125, true, 110),
+    Figure.femaleDark: BodyPart(54, 141, 128, true, 100),
+  }),
+  ('chest', _chest),
+  ('bust', _chest),
+  ('forearm', {
+    Figure.male: BodyPart(30, 53, 178, false, 27),
+    Figure.female: BodyPart(36, 57, 178, false, 23),
+    Figure.maleDark: BodyPart(35, 57, 174, false, 27),
+    Figure.femaleDark: BodyPart(44, 62, 176, false, 23),
+  }),
+  ('wrist', {
+    Figure.male: BodyPart(17, 34, 200, false, 16),
+    Figure.female: BodyPart(20, 35, 201, false, 15),
+    Figure.maleDark: BodyPart(20, 34, 205, false, 16),
+    Figure.femaleDark: BodyPart(26, 38, 210, false, 15),
+  }),
+  ('bicep', _upperArm),
+  ('arm', _upperArm),
+  ('belly', _belly),
+  ('abdom', _belly),
+  ('stomach', _belly),
+  ('waist', {
+    Figure.male: BodyPart(72, 128, 172, true, 80),
+    Figure.female: BodyPart(76, 125, 170, true, 72),
+    Figure.maleDark: BodyPart(72, 127, 174, true, 80),
+    Figure.femaleDark: BodyPart(77, 121, 176, true, 72),
+  }),
+  ('hip', _hips),
+  ('glute', _hips),
+  ('above knee', {
+    Figure.male: BodyPart(64, 91, 276, false, 42),
+    Figure.female: BodyPart(65, 92, 276, false, 42),
+    Figure.maleDark: BodyPart(65, 90, 275, false, 42),
+    Figure.femaleDark: BodyPart(67, 92, 280, false, 42),
+  }),
+  ('thigh', {
+    Figure.male: BodyPart(61, 94, 258, false, 55),
+    Figure.female: BodyPart(61, 95, 254, false, 57),
+    Figure.maleDark: BodyPart(63, 93, 258, false, 55),
+    Figure.femaleDark: BodyPart(62, 96, 250, false, 57),
+  }),
+  ('knee', {
+    Figure.male: BodyPart(65, 88, 292, false, 38),
+    Figure.female: BodyPart(66, 89, 292, false, 37),
+    Figure.maleDark: BodyPart(65, 87, 289, false, 38),
+    Figure.femaleDark: BodyPart(68, 90, 293, false, 37),
+  }),
+  ('calf', {
+    Figure.male: BodyPart(114, 141, 322, true, 37),
+    Figure.female: BodyPart(119, 146, 322, true, 35),
+    Figure.maleDark: BodyPart(116, 141, 315, true, 37),
+    Figure.femaleDark: BodyPart(113, 138, 322, true, 35),
+  }),
+  ('ankle', {
+    Figure.male: BodyPart(123, 135, 366, true, 22),
+    Figure.female: BodyPart(130, 142, 366, true, 21),
+    Figure.maleDark: BodyPart(125, 134, 360, true, 22),
+    Figure.femaleDark: BodyPart(125, 134, 372, true, 21, axis: 101.5),
+  }),
 ];
 
-/// The part a field measures on [body], matched by name. "L-"/"left" and
+const _chest = {
+  Figure.male: BodyPart(60, 140, 138, false, 95),
+  Figure.female: BodyPart(70, 131, 135, false, 90),
+  Figure.maleDark: BodyPart(60, 140, 141, false, 95),
+  Figure.femaleDark: BodyPart(68, 131, 142, false, 90),
+};
+const _upperArm = {
+  Figure.male: BodyPart(43, 65, 148, false, 30),
+  Figure.female: BodyPart(54, 69, 148, false, 27),
+  Figure.maleDark: BodyPart(45, 65, 154, false, 30),
+  Figure.femaleDark: BodyPart(55, 69, 150, false, 27),
+};
+const _belly = {
+  Figure.male: BodyPart(71, 129, 178, false, 85),
+  Figure.female: BodyPart(72, 130, 178, false, 78),
+  Figure.maleDark: BodyPart(71, 128, 180, false, 85),
+  Figure.femaleDark: BodyPart(74, 125, 184, false, 78),
+};
+const _hips = {
+  Figure.male: BodyPart(62, 138, 214, true, 98),
+  Figure.female: BodyPart(60, 144, 214, true, 100),
+  Figure.maleDark: BodyPart(62, 137, 215, true, 98),
+  Figure.femaleDark: BodyPart(61, 137, 215, true, 100),
+};
+
+/// The part a field measures on [figure], matched by name. "L-"/"left" and
 /// "R-"/"right" pick the side; null when the name isn't a known body part.
-BodyPart? partFor(MeasureField f, [BodyType body = BodyType.male]) {
+BodyPart? partFor(MeasureField f, [Figure figure = Figure.male]) {
   if (f.custom) return null;
   final name = f.label.toLowerCase();
   final left = name.startsWith('l-') || name.startsWith('l ') || name.contains('left');
   final right = name.startsWith('r-') || name.startsWith('r ') || name.contains('right');
   final words = name.replaceAll(RegExp(r'[-_]'), ' ');
-  for (final (keyword, male, female) in _parts) {
+  for (final (keyword, positions) in _parts) {
     if (!words.contains(keyword)) continue;
-    final part = body == BodyType.female ? female : male;
-    if ((left && part.right) || (right && !part.right)) return part.mirrored(_centres[body]!);
+    final part = positions[figure]!;
+    if ((left && part.right) || (right && !part.right)) return part.mirrored(_centres[figure]!);
     return part;
   }
   return null;
@@ -93,11 +183,11 @@ class BodyMap extends StatelessWidget {
     required this.valueText,
     required this.onTap,
     this.selectedKey,
-    this.body = BodyType.male,
+    this.figure = Figure.male,
   });
 
   final List<MeasureField> fields;
-  final BodyType body;
+  final Figure figure;
 
   /// Display text for a field's latest value, or null when never logged.
   final String? Function(MeasureField f) valueText;
@@ -115,7 +205,7 @@ class BodyMap extends StatelessWidget {
     final left = <(MeasureField, BodyPart?)>[], right = <(MeasureField, BodyPart?)>[];
     final unplaced = <MeasureField>[], custom = <MeasureField>[];
     for (final f in fields) {
-      final part = partFor(f, body);
+      final part = partFor(f, figure);
       if (f.custom) {
         custom.add(f);
       } else if (part == null) {
@@ -138,7 +228,7 @@ class BodyMap extends StatelessWidget {
       final cardH = ((c.maxHeight - _gap * (rows - 1)) / rows).clamp(52.0, 58.0);
       final h = math.max(c.maxHeight, rows * cardH + (rows - 1) * _gap);
 
-      final pic = bodyImageRects[body]!, outline = bodyOutlines[body]!;
+      final pic = bodyImageRects[figure]!, outline = bodyOutlines[figure]!;
       const clear = 6.0; // space kept between a card and the body
 
       // The body's leftmost and rightmost points between two heights in the
@@ -237,11 +327,11 @@ class BodyMap extends StatelessWidget {
         child: Stack(
           children: [
             Positioned(
-              left: ox + bodyImageRects[body]!.left * s,
-              top: oy + bodyImageRects[body]!.top * s,
-              width: bodyImageRects[body]!.width * s,
-              height: bodyImageRects[body]!.height * s,
-              child: Image.asset(bodyImages[body]!, fit: BoxFit.contain, filterQuality: FilterQuality.medium),
+              left: ox + pic.left * s,
+              top: oy + pic.top * s,
+              width: pic.width * s,
+              height: pic.height * s,
+              child: Image.asset(bodyImages[figure]!, fit: BoxFit.contain, filterQuality: FilterQuality.medium),
             ),
             Positioned.fill(
               child: CustomPaint(

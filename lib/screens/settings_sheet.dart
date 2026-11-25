@@ -97,6 +97,8 @@ class _SettingsSheetState extends ConsumerState<_SettingsSheet> {
           Text('BODY', style: label(context)),
           const SizedBox(height: 8),
           BodyTypePicker(data: data),
+          const SizedBox(height: 10),
+          SkinTonePicker(data: data),
           const SizedBox(height: 24),
           Text('HEALTH', style: label(context)),
           const SizedBox(height: 4),
@@ -356,6 +358,27 @@ class _HeightFieldState extends ConsumerState<HeightField> {
         const SizedBox(width: 12),
         Expanded(child: _box(_inches, 'in')),
       ],
+    );
+  }
+}
+
+/// Light / dark skin toggle for the figure.
+class SkinTonePicker extends ConsumerWidget {
+  const SkinTonePicker({super.key, required this.data});
+
+  final AppData data;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    Widget dot(Color c) => Container(width: 16, height: 16, decoration: BoxDecoration(color: c, shape: BoxShape.circle));
+    return SegmentedButton<SkinTone>(
+      showSelectedIcon: false,
+      segments: [
+        ButtonSegment(value: SkinTone.light, icon: dot(const Color(0xFFF2B791)), label: const Text('LIGHT SKIN')),
+        ButtonSegment(value: SkinTone.dark, icon: dot(const Color(0xFF8A5234)), label: const Text('DARK SKIN')),
+      ],
+      selected: {data.skinTone},
+      onSelectionChanged: (s) => ref.read(appProvider.notifier).setSkinTone(s.first),
     );
   }
 }

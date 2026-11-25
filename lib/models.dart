@@ -203,3 +203,22 @@ enum HealthAnalysis {
 
 /// Which figure the body map draws.
 enum BodyType { male, female }
+
+/// Skin of the body figure.
+enum SkinTone { light, dark }
+
+/// One drawn body: a body type in a skin tone. Each has its own picture,
+/// outline and measurement positions.
+enum Figure {
+  male(BodyType.male, SkinTone.light),
+  female(BodyType.female, SkinTone.light),
+  maleDark(BodyType.male, SkinTone.dark),
+  femaleDark(BodyType.female, SkinTone.dark);
+
+  const Figure(this.body, this.skin);
+
+  final BodyType body;
+  final SkinTone skin;
+
+  static Figure of(BodyType body, SkinTone skin) => values.firstWhere((f) => f.body == body && f.skin == skin);
+}

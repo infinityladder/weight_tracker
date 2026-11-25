@@ -103,7 +103,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             valueText: valueText,
             selectedKey: _selected,
             onTap: _measure,
-            body: data.body,
+            figure: data.figure,
           );
     final nav = Row(
       children: [
