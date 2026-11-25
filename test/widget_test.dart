@@ -169,6 +169,13 @@ void main() {
     expect(noEarlyWaist.measurementAtStart('waist'), (DateTime(2026, 1, 22), 90.0));
   });
 
+  test('skin colour is saved by name and defaults to light', () {
+    expect(SkinTone.decode('brown'), SkinTone.brown);
+    expect(SkinTone.decode('dark'), SkinTone.dark);
+    expect(SkinTone.decode(null), SkinTone.light);
+    expect(Figure.of(BodyType.female, SkinTone.brown), Figure.femaleBrown);
+  });
+
   test('body parts match by name and side', () {
     MeasureField f(String label) => MeasureField(key: label, label: label, builtIn: false, hidden: false, sortOrder: 0);
     final lThigh = partFor(f('L-Thigh'))!, rThigh = partFor(f('R-Thigh'))!;

@@ -97,6 +97,8 @@ flutter:
   assets:
     - images/body_log_male.png
     - images/body_log_female.png
+    - images/body_log_male_brown_skin.png
+    - images/body_log_female_brown_skin.png
     - images/body_log_male_dark_skin.png
     - images/body_log_female_dark_skin.png
 

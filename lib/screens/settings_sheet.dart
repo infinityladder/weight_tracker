@@ -362,23 +362,56 @@ class _HeightFieldState extends ConsumerState<HeightField> {
   }
 }
 
-/// Light / dark skin toggle for the figure.
+/// Skin colour swatches for the figure.
 class SkinTonePicker extends ConsumerWidget {
   const SkinTonePicker({super.key, required this.data});
 
   final AppData data;
 
+  static const swatches = {
+    SkinTone.light: Color(0xFFF2B791),
+    SkinTone.brown: Color(0xFFC08552),
+    SkinTone.dark: Color(0xFF7A4428),
+  };
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    Widget dot(Color c) => Container(width: 16, height: 16, decoration: BoxDecoration(color: c, shape: BoxShape.circle));
-    return SegmentedButton<SkinTone>(
-      showSelectedIcon: false,
-      segments: [
-        ButtonSegment(value: SkinTone.light, icon: dot(const Color(0xFFF2B791)), label: const Text('LIGHT SKIN')),
-        ButtonSegment(value: SkinTone.dark, icon: dot(const Color(0xFF8A5234)), label: const Text('DARK SKIN')),
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Text('Skin colour', style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 16)),
+        const Spacer(),
+        for (final tone in SkinTone.values)
+          Semantics(
+            button: true,
+            selected: tone == data.skinTone,
+            label: '${tone.name} skin',
+            child: InkResponse(
+              onTap: () => ref.read(appProvider.notifier).setSkinTone(tone),
+              radius: 26,
+              child: SizedBox(
+                width: 52,
+                height: 52,
+                child: Center(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: swatches[tone],
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: tone == data.skinTone ? brandOrange : scheme.outlineVariant,
+                        width: tone == data.skinTone ? 3 : 1,
+                      ),
+                    ),
+                    child: tone == data.skinTone ? const Icon(Icons.check, size: 20, color: Colors.white) : null,
+                  ),
+                ),
+              ),
+            ),
+          ),
       ],
-      selected: {data.skinTone},
-      onSelectionChanged: (s) => ref.read(appProvider.notifier).setSkinTone(s.first),
     );
   }
 }

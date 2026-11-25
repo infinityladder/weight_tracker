@@ -29,22 +29,33 @@ class BodyPart {
 }
 
 /// Each picture's centre line.
-const _centres = {Figure.male: 100.0, Figure.female: 102.0, Figure.maleDark: 100.0, Figure.femaleDark: 99.5};
+const _centres = {
+  Figure.male: 100.0,
+  Figure.female: 102.0,
+  Figure.maleBrown: 98.0,
+  Figure.femaleBrown: 101.5,
+  Figure.maleDark: 100.0,
+  Figure.femaleDark: 99.5,
+};
 
 const bodyImages = {
   Figure.male: 'images/body_log_male.png',
   Figure.female: 'images/body_log_female.png',
+  Figure.maleBrown: 'images/body_log_male_brown_skin.png',
+  Figure.femaleBrown: 'images/body_log_female_brown_skin.png',
   Figure.maleDark: 'images/body_log_male_dark_skin.png',
   Figure.femaleDark: 'images/body_log_female_dark_skin.png',
 };
 
 /// Where each body picture sits in the 200 x 440 box. The light pictures fill
-/// the width; the dark ones have wider margins, so they're scaled to the same
-/// body height (the male one as tall as his outstretched hands allow) and
-/// centred on the same spot.
+/// the width; the others are framed differently, so they're scaled to the
+/// same body height (or as tall as the outstretched hands allow) and centred
+/// on the same spot.
 const bodyImageRects = {
   Figure.male: Rect.fromLTWH(0, 38.37, 200, 363.27),
   Figure.female: Rect.fromLTWH(0, 29.25, 200, 381.5),
+  Figure.maleBrown: Rect.fromLTWH(0.5, 39.39, 204.32, 363.24),
+  Figure.femaleBrown: Rect.fromLTWH(-7.15, 34.34, 206.65, 373.22),
   Figure.maleDark: Rect.fromLTWH(-9.94, 43.22, 213.26, 356.25),
   Figure.femaleDark: Rect.fromLTWH(4.91, 24.51, 198.99, 391.86),
 };
@@ -64,12 +75,16 @@ const _parts = <(String, Map<Figure, BodyPart>)>[
   ('neck', {
     Figure.male: BodyPart(87, 112, 90, false, 38),
     Figure.female: BodyPart(89, 106, 90, false, 33),
+    Figure.maleBrown: BodyPart(85, 109, 99, false, 38),
+    Figure.femaleBrown: BodyPart(92, 112, 100, false, 33),
     Figure.maleDark: BodyPart(88, 112, 98, false, 38),
     Figure.femaleDark: BodyPart(88, 106, 96, false, 33),
   }),
   ('shoulder', {
     Figure.male: BodyPart(48, 152, 124, true, 110),
     Figure.female: BodyPart(54, 147, 124, true, 100),
+    Figure.maleBrown: BodyPart(45, 149, 130, true, 110),
+    Figure.femaleBrown: BodyPart(57, 148, 132, true, 100),
     Figure.maleDark: BodyPart(50, 149, 125, true, 110),
     Figure.femaleDark: BodyPart(54, 141, 128, true, 100),
   }),
@@ -78,12 +93,16 @@ const _parts = <(String, Map<Figure, BodyPart>)>[
   ('forearm', {
     Figure.male: BodyPart(30, 53, 178, false, 27),
     Figure.female: BodyPart(36, 57, 178, false, 23),
+    Figure.maleBrown: BodyPart(32, 53, 180, false, 27),
+    Figure.femaleBrown: BodyPart(43, 61, 179, false, 23),
     Figure.maleDark: BodyPart(35, 57, 174, false, 27),
     Figure.femaleDark: BodyPart(44, 62, 176, false, 23),
   }),
   ('wrist', {
     Figure.male: BodyPart(17, 34, 200, false, 16),
     Figure.female: BodyPart(20, 35, 201, false, 15),
+    Figure.maleBrown: BodyPart(18, 33, 208, false, 16),
+    Figure.femaleBrown: BodyPart(26, 37, 205, false, 15),
     Figure.maleDark: BodyPart(20, 34, 205, false, 16),
     Figure.femaleDark: BodyPart(26, 38, 210, false, 15),
   }),
@@ -95,6 +114,8 @@ const _parts = <(String, Map<Figure, BodyPart>)>[
   ('waist', {
     Figure.male: BodyPart(72, 128, 172, true, 80),
     Figure.female: BodyPart(76, 125, 170, true, 72),
+    Figure.maleBrown: BodyPart(70, 125, 179, true, 80),
+    Figure.femaleBrown: BodyPart(78, 126, 180, true, 72),
     Figure.maleDark: BodyPart(72, 127, 174, true, 80),
     Figure.femaleDark: BodyPart(77, 121, 176, true, 72),
   }),
@@ -103,30 +124,40 @@ const _parts = <(String, Map<Figure, BodyPart>)>[
   ('above knee', {
     Figure.male: BodyPart(64, 91, 276, false, 42),
     Figure.female: BodyPart(65, 92, 276, false, 42),
+    Figure.maleBrown: BodyPart(62, 89, 280, false, 42),
+    Figure.femaleBrown: BodyPart(66, 91, 285, false, 42),
     Figure.maleDark: BodyPart(65, 90, 275, false, 42),
     Figure.femaleDark: BodyPart(67, 92, 280, false, 42),
   }),
   ('thigh', {
     Figure.male: BodyPart(61, 94, 258, false, 55),
     Figure.female: BodyPart(61, 95, 254, false, 57),
+    Figure.maleBrown: BodyPart(59, 93, 263, false, 55),
+    Figure.femaleBrown: BodyPart(61, 97, 256, false, 57),
     Figure.maleDark: BodyPart(63, 93, 258, false, 55),
     Figure.femaleDark: BodyPart(62, 96, 250, false, 57),
   }),
   ('knee', {
     Figure.male: BodyPart(65, 88, 292, false, 38),
     Figure.female: BodyPart(66, 89, 292, false, 37),
+    Figure.maleBrown: BodyPart(63, 87, 293, false, 38),
+    Figure.femaleBrown: BodyPart(66, 88, 299, false, 37),
     Figure.maleDark: BodyPart(65, 87, 289, false, 38),
     Figure.femaleDark: BodyPart(68, 90, 293, false, 37),
   }),
   ('calf', {
     Figure.male: BodyPart(114, 141, 322, true, 37),
     Figure.female: BodyPart(119, 146, 322, true, 35),
+    Figure.maleBrown: BodyPart(114, 140, 320, true, 37),
+    Figure.femaleBrown: BodyPart(117, 144, 324, true, 35),
     Figure.maleDark: BodyPart(116, 141, 315, true, 37),
     Figure.femaleDark: BodyPart(113, 138, 322, true, 35),
   }),
   ('ankle', {
     Figure.male: BodyPart(123, 135, 366, true, 22),
     Figure.female: BodyPart(130, 142, 366, true, 21),
+    Figure.maleBrown: BodyPart(124, 135, 362, true, 22),
+    Figure.femaleBrown: BodyPart(127, 138, 372, true, 21),
     Figure.maleDark: BodyPart(125, 134, 360, true, 22),
     Figure.femaleDark: BodyPart(125, 134, 372, true, 21, axis: 101.5),
   }),
@@ -135,24 +166,32 @@ const _parts = <(String, Map<Figure, BodyPart>)>[
 const _chest = {
   Figure.male: BodyPart(60, 140, 138, false, 95),
   Figure.female: BodyPart(70, 131, 135, false, 90),
+  Figure.maleBrown: BodyPart(57, 139, 146, false, 95),
+  Figure.femaleBrown: BodyPart(72, 132, 140, false, 90),
   Figure.maleDark: BodyPart(60, 140, 141, false, 95),
   Figure.femaleDark: BodyPart(68, 131, 142, false, 90),
 };
 const _upperArm = {
   Figure.male: BodyPart(43, 65, 148, false, 30),
   Figure.female: BodyPart(54, 69, 148, false, 27),
+  Figure.maleBrown: BodyPart(40, 62, 160, false, 30, axis: 97),
+  Figure.femaleBrown: BodyPart(54, 69, 158, false, 27),
   Figure.maleDark: BodyPart(45, 65, 154, false, 30),
   Figure.femaleDark: BodyPart(55, 69, 150, false, 27),
 };
 const _belly = {
   Figure.male: BodyPart(71, 129, 178, false, 85),
   Figure.female: BodyPart(72, 130, 178, false, 78),
+  Figure.maleBrown: BodyPart(69, 126, 185, false, 85),
+  Figure.femaleBrown: BodyPart(75, 129, 187, false, 78),
   Figure.maleDark: BodyPart(71, 128, 180, false, 85),
   Figure.femaleDark: BodyPart(74, 125, 184, false, 78),
 };
 const _hips = {
   Figure.male: BodyPart(62, 138, 214, true, 98),
   Figure.female: BodyPart(60, 144, 214, true, 100),
+  Figure.maleBrown: BodyPart(60, 136, 215, true, 98),
+  Figure.femaleBrown: BodyPart(62, 141, 215, true, 100),
   Figure.maleDark: BodyPart(62, 137, 215, true, 98),
   Figure.femaleDark: BodyPart(61, 137, 215, true, 100),
 };

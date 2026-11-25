@@ -169,7 +169,7 @@ Future<AppData> loadAppData(BodyLogDb db) async {
   return AppData(
     startDate: start == null ? null : DateTime.tryParse(start),
     body: (await db.setting('body')) == 'female' ? BodyType.female : BodyType.male,
-    skinTone: (await db.setting('skin')) == 'dark' ? SkinTone.dark : SkinTone.light,
+    skinTone: SkinTone.decode(await db.setting('skin')),
     heightCm: double.tryParse(await db.setting('height_cm') ?? ''),
     bmiRanges: (await db.setting('bmi_ranges')) == 'asian' ? BmiRanges.asian : BmiRanges.standard,
     healthShown: HealthAnalysis.decode(await db.setting('health')),

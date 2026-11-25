@@ -23,6 +23,8 @@ STEP = 2  # box units per row
 BODIES = {
     'male': ('images/body_log_male.png', (0, 38.37, 200, 363.27)),
     'female': ('images/body_log_female.png', (0, 29.25, 200, 381.5)),
+    'maleBrown': ('images/body_log_male_brown_skin.png', (0.5, 39.39, 204.32, 363.24)),
+    'femaleBrown': ('images/body_log_female_brown_skin.png', (-7.15, 34.34, 206.65, 373.22)),
     'maleDark': ('images/body_log_male_dark_skin.png', (-9.94, 43.22, 213.26, 356.25)),
     'femaleDark': ('images/body_log_female_dark_skin.png', (4.91, 24.51, 198.99, 391.86)),
 }

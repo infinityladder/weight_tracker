@@ -204,14 +204,22 @@ enum HealthAnalysis {
 /// Which figure the body map draws.
 enum BodyType { male, female }
 
-/// Skin of the body figure.
-enum SkinTone { light, dark }
+/// Skin colour of the body figure, lightest first.
+enum SkinTone {
+  light,
+  brown,
+  dark;
+
+  static SkinTone decode(String? name) => values.firstWhere((t) => t.name == name, orElse: () => light);
+}
 
 /// One drawn body: a body type in a skin tone. Each has its own picture,
 /// outline and measurement positions.
 enum Figure {
   male(BodyType.male, SkinTone.light),
   female(BodyType.female, SkinTone.light),
+  maleBrown(BodyType.male, SkinTone.brown),
+  femaleBrown(BodyType.female, SkinTone.brown),
   maleDark(BodyType.male, SkinTone.dark),
   femaleDark(BodyType.female, SkinTone.dark);
 
