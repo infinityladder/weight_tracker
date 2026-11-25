@@ -4,7 +4,7 @@ Release notes for Google Play. Paste the block for a version into the
 "Release notes" box in Play Console. Each language can have at most 500
 characters.
 
-## 1.0.0 (build 2)
+## 1.0.0 (build 3)
 
 ```
 <en-US>

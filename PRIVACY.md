@@ -1,41 +1,16 @@
-# Body log privacy policy
+# Simple Body Log privacy policy
 
-_Last updated: 10 November 2026_
+The privacy policy is published at
+**https://www.infinityladdertechnologies.com/products/simple-body-log/privacy/**.
+That page is the one linked from Google Play and from the app (Settings → Privacy policy).
 
-Body log is a weight and body-measurement tracker. This policy explains what
-happens to the information you enter.
+In short, for this version of the app:
 
-## What the app stores
+- Weigh-ins, body measurements, your goal, height and settings are stored only on your device.
+- The app has no account or server, doesn't use the internet, and asks for no permissions.
+- It contains no advertising, analytics or tracking services.
+- Export saves a CSV file to a folder you pick; import reads only the file you pick.
+- Android may include the app's data in your own Google device backup, if you turned backup on.
+- Delete entries in the app, or everything by clearing the app's storage or uninstalling it.
 
-The weights, body measurements, goals, dates and settings you enter are saved
-in a database on your device. That is the only data the app keeps.
-
-## What leaves your device
-
-Nothing, unless you send it yourself. Body log has no account, no server, no
-advertising and no analytics, and it does not ask for internet access. The
-developer never receives your data.
-
-- **Export.** When you export your log, the app saves a CSV file to the folder
-  you pick. If that folder is synced to a cloud service, that service handles
-  the file under its own privacy policy.
-- **Import.** When you import a CSV file, the app reads only the file you pick.
-
-## Deleting your data
-
-Uninstalling the app, or clearing its storage in Android settings, deletes
-everything it has stored. Any CSV files you exported stay wherever you saved
-or sent them.
-
-## Children
-
-Body log is not directed at children under 13.
-
-## Changes
-
-If this policy changes, the new version will be published at this address
-with a new date.
-
-## Contact
-
-Questions: reachmalinga@gmail.com
+Contact: hello@infinityladdertechnologies.com

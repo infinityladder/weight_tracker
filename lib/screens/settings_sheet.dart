@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models.dart';
 import '../state.dart';
@@ -170,6 +171,15 @@ class _SettingsSheetState extends ConsumerState<_SettingsSheet> {
               Expanded(child: _dataButton(Icons.ios_share, 'EXPORT', () => exportData(context, ref))),
             ],
           ),
+          const SizedBox(height: 16),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: () => launchUrl(privacyPolicyUrl, mode: LaunchMode.externalApplication),
+              icon: const Icon(Icons.privacy_tip_outlined, size: 18),
+              label: Text('PRIVACY POLICY', style: display(16, color: brandOrange)),
+            ),
+          ),
         ],
       ),
     );
@@ -279,6 +289,9 @@ class _CustomMeasureRowState extends ConsumerState<CustomMeasureRow> {
 
 /// Height in cm, or feet + inches. Saved as it's typed; clearing it removes
 /// the height (and the BMI).
+/// Also linked from the Play listing; Play requires the link inside the app too.
+final privacyPolicyUrl = Uri.parse('https://www.infinityladdertechnologies.com/products/simple-body-log/privacy/');
+
 class HeightField extends ConsumerStatefulWidget {
   const HeightField({super.key, required this.data});
 
