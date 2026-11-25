@@ -22,7 +22,7 @@ map is in [README.md](README.md).
 | 11 | Category and contact | done 2026-11-25 | App; **Health & Fitness**; weight/body tracking tags; email hello@infinityladdertechnologies.com; no phone; website https://www.infinityladdertechnologies.com/products/simple-body-log/; external marketing on | Main function | — |
 | 12 | Store listing | in progress | Text from [store_listing.md](store_listing.md) (incl. the health disclaimer); feature graphic + 8 slides per format from [screenshots.md](screenshots.md) | — | Features, claims, screenshots |
 | A | Advertising ID | done 2026-11-25 | **No** | Release build requests no permissions (no `AD_ID`); checked on the build 3 merged manifest | Ads (planned): Yes, *Advertising or marketing* |
-| B | Product page | done 2026-11-25 (site commit `fdd728b`, not yet pushed) | https://www.infinityladdertechnologies.com/products/simple-body-log/ with "Coming soon to Google Play" | Store settings website; social preview | Launch: swap in the Play badge on the page and the products index |
+| B | Product page | done 2026-11-25 (site commit `fdd728b`, live) | https://www.infinityladdertechnologies.com/products/simple-body-log/ with "Coming soon to Google Play" | Store settings website; social preview | Launch: swap in the Play badge on the page and the products index |
 
 ## Pending decisions
 
