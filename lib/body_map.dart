@@ -36,25 +36,33 @@ const bodyImageRects = {
 
 /// Keyword -> where it sits on the male and female figures, most specific
 /// first ("forearm" before "arm", "above knee" before "knee"). Positions are
-/// measured on each body's picture as placed by [bodyImageRects].
+/// measured on each body's picture as placed by [bodyImageRects], at the
+/// standard tape landmarks (ISO 8559-1, WHO): neck below the Adam's apple;
+/// shoulders round the widest part of the deltoids; chest at the nipples, bust
+/// at its fullest; upper arm halfway from shoulder tip to elbow; forearm at its
+/// widest just below the elbow; wrist at the crease; waist halfway between the
+/// lowest rib and the top of the hip bone; belly at the navel; hips round the
+/// widest part of the buttocks; thigh just below the buttock fold; above knee
+/// just over the kneecap; knee across the middle of the kneecap; calf at its
+/// widest; ankle at its narrowest.
 const _parts = <(String, BodyPart, BodyPart)>[
   ('neck', BodyPart(87, 112, 90, false, 38), BodyPart(89, 106, 90, false, 33)),
-  ('shoulder', BodyPart(50, 150, 114, true, 110), BodyPart(55, 145, 115, true, 100)),
+  ('shoulder', BodyPart(48, 152, 124, true, 110), BodyPart(54, 147, 124, true, 100)),
   ('chest', BodyPart(60, 140, 138, false, 95), BodyPart(70, 131, 135, false, 90)),
   ('bust', BodyPart(60, 140, 138, false, 95), BodyPart(70, 131, 135, false, 90)),
-  ('forearm', BodyPart(27, 48, 186, false, 27), BodyPart(31, 49, 188, false, 23)),
+  ('forearm', BodyPart(30, 53, 178, false, 27), BodyPart(36, 57, 178, false, 23)),
   ('wrist', BodyPart(17, 34, 200, false, 16), BodyPart(20, 35, 201, false, 15)),
-  ('bicep', BodyPart(43, 65, 150, false, 30), BodyPart(50, 68, 153, false, 27)),
-  ('arm', BodyPart(43, 65, 150, false, 30), BodyPart(50, 68, 153, false, 27)),
-  ('belly', BodyPart(71, 129, 179, false, 85), BodyPart(72, 130, 179, false, 78)),
-  ('abdom', BodyPart(71, 129, 179, false, 85), BodyPart(72, 130, 179, false, 78)),
-  ('stomach', BodyPart(71, 129, 179, false, 85), BodyPart(72, 130, 179, false, 78)),
-  ('waist', BodyPart(71, 128, 170, true, 80), BodyPart(77, 125, 168, true, 72)),
-  ('hip', BodyPart(62, 138, 214, true, 98), BodyPart(59, 144, 214, true, 100)),
-  ('glute', BodyPart(62, 138, 214, true, 98), BodyPart(59, 144, 214, true, 100)),
-  ('above knee', BodyPart(65, 90, 284, false, 42), BodyPart(66, 91, 280, false, 42)),
+  ('bicep', BodyPart(43, 65, 148, false, 30), BodyPart(51, 69, 148, false, 27)),
+  ('arm', BodyPart(43, 65, 148, false, 30), BodyPart(51, 69, 148, false, 27)),
+  ('belly', BodyPart(71, 129, 178, false, 85), BodyPart(72, 130, 178, false, 78)),
+  ('abdom', BodyPart(71, 129, 178, false, 85), BodyPart(72, 130, 178, false, 78)),
+  ('stomach', BodyPart(71, 129, 178, false, 85), BodyPart(72, 130, 178, false, 78)),
+  ('waist', BodyPart(72, 128, 172, true, 80), BodyPart(76, 125, 170, true, 72)),
+  ('hip', BodyPart(62, 138, 214, true, 98), BodyPart(60, 144, 214, true, 100)),
+  ('glute', BodyPart(62, 138, 214, true, 98), BodyPart(60, 144, 214, true, 100)),
+  ('above knee', BodyPart(64, 91, 276, false, 42), BodyPart(65, 92, 276, false, 42)),
   ('thigh', BodyPart(61, 94, 258, false, 55), BodyPart(61, 95, 254, false, 57)),
-  ('knee', BodyPart(62, 84, 302, false, 38), BodyPart(66, 89, 294, false, 37)),
+  ('knee', BodyPart(65, 88, 292, false, 38), BodyPart(66, 89, 292, false, 37)),
   ('calf', BodyPart(114, 141, 322, true, 37), BodyPart(119, 146, 322, true, 35)),
   ('ankle', BodyPart(123, 135, 366, true, 22), BodyPart(130, 142, 366, true, 21)),
 ];
