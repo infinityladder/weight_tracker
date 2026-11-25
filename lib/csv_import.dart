@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'models.dart';
 import 'units.dart';
 
@@ -24,19 +26,44 @@ class CsvImportException implements Exception {
   String toString() => message;
 }
 
+/// Turns a picked file's bytes into text: UTF-8 or UTF-16 (what Excel's
+/// "Unicode text" writes). Throws a readable message for spreadsheets and PDFs.
+String decodeCsvBytes(List<int> b) {
+  bool starts(List<int> p) => b.length >= p.length && [for (var i = 0; i < p.length; i++) b[i] == p[i]].every((x) => x);
+  if (starts([0x50, 0x4B])) {
+    throw CsvImportException(
+        'This is a spreadsheet (Excel or Google Sheets), not a CSV. Open it there and save or download it as CSV.');
+  }
+  if (starts([0x25, 0x50, 0x44, 0x46])) throw CsvImportException('This is a PDF, not a CSV file.');
+  final le = starts([0xFF, 0xFE]), be = starts([0xFE, 0xFF]);
+  if (le || be) {
+    return String.fromCharCodes([
+      for (var i = 2; i + 1 < b.length; i += 2) le ? b[i] | (b[i + 1] << 8) : (b[i] << 8) | b[i + 1],
+    ]);
+  }
+  return utf8.decode(b, allowMalformed: true);
+}
+
 /// Reads a CSV in the format [buildCsv] writes: date, optional time, an
 /// optional weight column ("weight_kg" / "weight_lb") and one column per
 /// measurement ("Waist (cm)", "Waist (in)" or just "Waist"), matched to
 /// [fields] by name. The main_weigh_in column is ignored; it's worked out
 /// from the time.
 CsvImport parseCsvImport(String text, List<MeasureField> fields) {
-  final rows = _parseCsv(text.replaceFirst('﻿', ''));
-  if (rows.isEmpty) throw CsvImportException('The file is empty.');
+  text = text.replaceFirst('﻿', '');
+  // Excel in many regions saves with ";" (or tabs) instead of commas.
+  final firstLine = text.split(RegExp(r'\r?\n')).first;
+  final sep = [',', ';', '\t'].reduce((a, b) => b.allMatches(firstLine).length > a.allMatches(firstLine).length ? b : a);
+  final rows = _parseCsv(text, sep);
+  if (rows.isEmpty || text.trim().isEmpty) throw CsvImportException('The file is empty.');
   final header = [for (final h in rows.first) h.trim()];
   final lower = [for (final h in header) h.toLowerCase()];
 
   final dateCol = lower.indexOf('date');
-  if (dateCol < 0) throw CsvImportException('No "date" column found. Is this a Body log export?');
+  if (dateCol < 0) {
+    final shown = firstLine.length > 80 ? '${firstLine.substring(0, 80)}…' : firstLine;
+    throw CsvImportException('No "date" column found. Is this a Body log export?\n\nIts first line reads:\n$shown');
+  }
   final timeCol = lower.indexOf('time');
 
   int? weightCol;
@@ -100,7 +127,7 @@ int? _minutes(String s) {
 }
 
 /// Minimal RFC 4180 reader: quoted fields may hold commas, quotes ("") and newlines.
-List<List<String>> _parseCsv(String text) {
+List<List<String>> _parseCsv(String text, [String sep = ',']) {
   final rows = <List<String>>[];
   var row = <String>[];
   final field = StringBuffer();
@@ -118,7 +145,7 @@ List<List<String>> _parseCsv(String text) {
       }
     } else if (c == '"') {
       quoted = true;
-    } else if (c == ',') {
+    } else if (c == sep) {
       row.add(field.toString());
       field.clear();
     } else if (c == '\n' || c == '\r') {

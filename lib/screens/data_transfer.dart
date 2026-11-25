@@ -40,7 +40,7 @@ Future<void> importData(BuildContext context, WidgetRef ref) async {
   String title;
   final lines = <String>[];
   try {
-    final text = utf8.decode(await file.readAsBytes(), allowMalformed: true);
+    final text = decodeCsvBytes(await file.readAsBytes());
     final r = await ref.read(appProvider.notifier).importCsv(text);
     title = r.added + r.updated == 0 ? 'Nothing imported' : 'Import done';
     lines.add('${r.added} new ${r.added == 1 ? 'entry' : 'entries'} added, ${r.updated} updated.');

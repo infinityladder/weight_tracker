@@ -259,5 +259,16 @@ void main() {
     test('rejects a file without a date column', () {
       expect(() => parseCsvImport('a,b\n1,2\n', fields), throwsA(isA<CsvImportException>()));
     });
+
+    test('reads semicolon, tab and UTF-16 files; rejects spreadsheets', () {
+      final semi = parseCsvImport('date;time;weight_kg\n2026-01-02;07:00;70,5\n', fields);
+      expect(semi.entries.single.date, DateTime(2026, 1, 2));
+      expect(semi.entries.single.weightKg, 70.5);
+      final tab = parseCsvImport('date\ttime\tweight_kg\n2026-01-02\t07:00\t70.5\n', fields);
+      expect(tab.entries.single.weightKg, 70.5);
+      final utf16 = [0xFF, 0xFE, for (final u in 'date,weight_kg\n2026-01-02,70\n'.codeUnits) ...[u, 0]];
+      expect(parseCsvImport(decodeCsvBytes(utf16), fields).entries.single.weightKg, 70);
+      expect(() => decodeCsvBytes([0x50, 0x4B, 3, 4]), throwsA(isA<CsvImportException>()));
+    });
   });
 }
