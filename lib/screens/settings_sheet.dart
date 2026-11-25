@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../body_map.dart';
 import '../models.dart';
 import '../state.dart';
 import '../theme.dart';
@@ -97,6 +98,8 @@ class _SettingsSheetState extends ConsumerState<_SettingsSheet> {
           Text('BODY', style: label(context)),
           const SizedBox(height: 8),
           BodyTypePicker(data: data),
+          const SizedBox(height: 14),
+          SkinTonePicker(data: data),
           const SizedBox(height: 24),
           Text('HEALTH', style: label(context)),
           const SizedBox(height: 4),
@@ -355,6 +358,51 @@ class _HeightFieldState extends ConsumerState<HeightField> {
         Expanded(child: _box(_main, 'ft')),
         const SizedBox(width: 12),
         Expanded(child: _box(_inches, 'in')),
+      ],
+    );
+  }
+}
+
+/// Row of skin-colour swatches for the figure.
+class SkinTonePicker extends ConsumerWidget {
+  const SkinTonePicker({super.key, required this.data});
+
+  final AppData data;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ring = Theme.of(context).colorScheme.onSurface;
+    return Row(
+      children: [
+        Text('Skin', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+        const Spacer(),
+        for (final tone in SkinTone.values)
+          Semantics(
+            button: true,
+            selected: tone == data.skinTone,
+            label: '${tone.name} skin',
+            child: GestureDetector(
+              onTap: () => ref.read(appProvider.notifier).setSkinTone(tone),
+              child: Container(
+                width: 44,
+                height: 44,
+                alignment: Alignment.center,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: skinSwatches[tone],
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: tone == data.skinTone ? brandOrange : ring.withValues(alpha: 0.15),
+                      width: tone == data.skinTone ? 3 : 1,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }

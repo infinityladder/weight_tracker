@@ -15,10 +15,38 @@ const _torsoAndLegs = ['Neck', 'Shoulders', 'Chest', 'Waist', 'Abdomen', 'Hips',
 const _arm = ['L-Bicep', 'L-Forearm'];
 
 void main() {
+  testWidgets('every skin tone has a picture with the same size and outline', (tester) async {
+    Future<(int, int, List<bool>)> load(String path) async {
+      final codec = await ui.instantiateImageCodec(File(path).readAsBytesSync());
+      final image = (await codec.getNextFrame()).image;
+      final data = (await image.toByteData())!;
+      return (image.width, image.height, [for (var i = 3; i < data.lengthInBytes; i += 4) data.getUint8(i) > 128]);
+    }
+
+    for (final body in BodyType.values) {
+      final (w, h, solid) = (await tester.runAsync(() => load(bodyImage(body))))!;
+      for (final tone in SkinTone.values.skip(1)) {
+        final (tw, th, tSolid) = (await tester.runAsync(() => load(bodyImage(body, tone))))!;
+        expect((tw, th), (w, h), reason: '${body.name} ${tone.name}');
+        var differ = 0;
+        for (var i = 0; i < solid.length; i++) {
+          if (solid[i] != tSolid[i]) differ++;
+        }
+        expect(differ / solid.length, lessThan(0.002), reason: '${body.name} ${tone.name} outline');
+      }
+    }
+  });
+
+  test('skin tones are saved by name and default to light', () {
+    expect(SkinTone.decode('brown'), SkinTone.brown);
+    expect(SkinTone.decode(null), SkinTone.light);
+    expect(SkinTone.decode('nonsense'), SkinTone.light);
+  });
+
   for (final body in BodyType.values) {
     testWidgets('every standard measure sits on the ${body.name} picture', (tester) async {
       final (width, height, pixels) = (await tester.runAsync(() async {
-        final codec = await ui.instantiateImageCodec(File(bodyImages[body]!).readAsBytesSync());
+        final codec = await ui.instantiateImageCodec(File(bodyImage(body)).readAsBytesSync());
         final image = (await codec.getNextFrame()).image;
         final data = await image.toByteData();
         return (image.width, image.height, data!);
