@@ -27,3 +27,5 @@ Simple Body Log is a private tracker for your weight and body measurements.
 - Import and export your data as CSV
 
 No account needed. Your measurements stay on your phone.
+
+Simple Body Log is not a medical device and does not diagnose, treat, cure or prevent any medical condition. Its BMI and waist ratios are general screening guides for adults. Talk to a healthcare professional for medical advice, diagnosis or treatment.
