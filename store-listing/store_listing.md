@@ -26,4 +26,4 @@ Simple Body Log is a private tracker for your weight and body measurements.
 - Light and dark themes
 - Import and export your data as CSV
 
-No account, no ads, no tracking. Everything stays on your phone.
+No account needed. Your measurements stay on your phone.

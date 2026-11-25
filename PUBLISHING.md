@@ -31,14 +31,16 @@ Before every upload, raise the build number in `pubspec.yaml`
 2. **Privacy policy URL:**
    `https://github.com/infinityladder/weight_tracker/blob/main/PRIVACY.md`
 3. **App access:** all functionality is available without special access.
-4. **Ads:** no ads.
+4. **Ads:** no ads. The listing and release notes don't promise "no ads", so
+   adding them later only needs this answer, the Data safety form and
+   `PRIVACY.md` updated in that release (ad SDKs collect device IDs).
 5. **Content rating:** fill in the questionnaire. No violence, no user
    content, no sharing of location, no purchases.
 6. **Target audience:** 18 and over (or 13+). Not for children.
 7. **Data safety:**
    - Does the app collect or share user data? **No.** Data stays on the
-     device; exports go only where the user sends them through the share
-     sheet, which Play doesn't count as collection.
+     device; an export is a CSV saved to a folder the user picks, which
+     Play doesn't count as collection.
    - Encryption in transit: not applicable (no network).
    - Can users request deletion: yes, by uninstalling or clearing app data.
 8. **Health apps declaration:** the app is a fitness and weight tracker. It

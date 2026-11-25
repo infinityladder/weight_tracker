@@ -14,7 +14,7 @@ First release of Simple Body Log.
 • Set a goal and track changes since your start date
 • Metric or imperial units, light and dark themes
 • Import and export your data as CSV
-No account, no ads. Your data stays on your phone.
+No account needed. Your measurements stay on your phone.
 </en-US>
 <es-ES>
 Primera versión de Simple Body Log.
@@ -23,7 +23,7 @@ Primera versión de Simple Body Log.
 • Fija un objetivo y sigue los cambios desde tu fecha de inicio
 • Unidades métricas o imperiales, tema claro y oscuro
 • Importa y exporta tus datos en CSV
-Sin cuenta ni anuncios. Tus datos se quedan en tu teléfono.
+Sin necesidad de cuenta. Tus medidas se quedan en tu teléfono.
 </es-ES>
 <fr-FR>
 Première version de Simple Body Log.
@@ -32,7 +32,7 @@ Première version de Simple Body Log.
 • Fixez un objectif et suivez l'évolution depuis votre date de départ
 • Unités métriques ou impériales, thème clair et sombre
 • Importez et exportez vos données en CSV
-Sans compte ni publicité. Vos données restent sur votre téléphone.
+Aucun compte requis. Vos mesures restent sur votre téléphone.
 </fr-FR>
 <de-DE>
 Erste Version von Simple Body Log.
@@ -41,7 +41,7 @@ Erste Version von Simple Body Log.
 • Setze ein Ziel und sieh die Veränderung seit deinem Startdatum
 • Metrische oder imperiale Einheiten, helles und dunkles Design
 • Daten als CSV importieren und exportieren
-Kein Konto, keine Werbung. Deine Daten bleiben auf deinem Handy.
+Kein Konto nötig. Deine Maße bleiben auf deinem Handy.
 </de-DE>
 <pt-BR>
 Primeira versão do Simple Body Log.
@@ -50,6 +50,6 @@ Primeira versão do Simple Body Log.
 • Defina uma meta e acompanhe as mudanças desde a data de início
 • Unidades métricas ou imperiais, tema claro e escuro
 • Importe e exporte seus dados em CSV
-Sem conta e sem anúncios. Seus dados ficam no seu celular.
+Sem precisar de conta. Suas medidas ficam no seu celular.
 </pt-BR>
 ```
