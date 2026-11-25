@@ -97,14 +97,6 @@ flutter:
   assets:
     - images/body_log_male.png
     - images/body_log_female.png
-    - images/body_log_male_medium.webp
-    - images/body_log_male_tan.webp
-    - images/body_log_male_brown.webp
-    - images/body_log_male_deep.webp
-    - images/body_log_female_medium.webp
-    - images/body_log_female_tan.webp
-    - images/body_log_female_brown.webp
-    - images/body_log_female_deep.webp
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

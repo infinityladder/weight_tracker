@@ -203,15 +203,3 @@ enum HealthAnalysis {
 
 /// Which figure the body map draws.
 enum BodyType { male, female }
-
-/// Skin colour of the body figure, lightest first. [light] is the original
-/// picture; the others are made by tool/skin_tones.py.
-enum SkinTone {
-  light,
-  medium,
-  tan,
-  brown,
-  deep;
-
-  static SkinTone decode(String? name) => values.firstWhere((t) => t.name == name, orElse: () => light);
-}

@@ -25,18 +25,7 @@ class BodyPart {
 /// middle of her picture.
 const _centres = {BodyType.male: 100.0, BodyType.female: 102.0};
 
-/// The picture for a body in a skin tone. Every tone has the same outline.
-String bodyImage(BodyType body, [SkinTone tone = SkinTone.light]) =>
-    tone == SkinTone.light ? 'images/body_log_${body.name}.png' : 'images/body_log_${body.name}_${tone.name}.webp';
-
-/// Swatch shown for each tone in Settings: the skin colour of its picture.
-const skinSwatches = {
-  SkinTone.light: Color(0xFFF2B791),
-  SkinTone.medium: Color(0xFFC78E67),
-  SkinTone.tan: Color(0xFFA76C47),
-  SkinTone.brown: Color(0xFF794A2F),
-  SkinTone.deep: Color(0xFF4F301F),
-};
+const bodyImages = {BodyType.male: 'images/body_log_male.png', BodyType.female: 'images/body_log_female.png'};
 
 /// Where each body picture sits in the 200 x 440 box: full width, centred
 /// vertically.
@@ -105,12 +94,10 @@ class BodyMap extends StatelessWidget {
     required this.onTap,
     this.selectedKey,
     this.body = BodyType.male,
-    this.skinTone = SkinTone.light,
   });
 
   final List<MeasureField> fields;
   final BodyType body;
-  final SkinTone skinTone;
 
   /// Display text for a field's latest value, or null when never logged.
   final String? Function(MeasureField f) valueText;
@@ -254,7 +241,7 @@ class BodyMap extends StatelessWidget {
               top: oy + bodyImageRects[body]!.top * s,
               width: bodyImageRects[body]!.width * s,
               height: bodyImageRects[body]!.height * s,
-              child: Image.asset(bodyImage(body, skinTone), fit: BoxFit.contain, filterQuality: FilterQuality.medium, gaplessPlayback: true),
+              child: Image.asset(bodyImages[body]!, fit: BoxFit.contain, filterQuality: FilterQuality.medium),
             ),
             Positioned.fill(
               child: CustomPaint(

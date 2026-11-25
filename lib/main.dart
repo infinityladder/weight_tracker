@@ -104,7 +104,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             selectedKey: _selected,
             onTap: _measure,
             body: data.body,
-            skinTone: data.skinTone,
           );
     final nav = Row(
       children: [
