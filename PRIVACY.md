@@ -16,9 +16,9 @@ Nothing, unless you send it yourself. Body log has no account, no server, no
 advertising and no analytics, and it does not ask for internet access. The
 developer never receives your data.
 
-- **Export.** When you export your log, the app creates a CSV file and opens
-  Android's share sheet. The file goes only where you choose to send it, and
-  whatever app you pick handles it under its own privacy policy.
+- **Export.** When you export your log, the app saves a CSV file to the folder
+  you pick. If that folder is synced to a cloud service, that service handles
+  the file under its own privacy policy.
 - **Import.** When you import a CSV file, the app reads only the file you pick.
 
 ## Deleting your data
