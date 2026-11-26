@@ -488,22 +488,70 @@ class GoalCard extends StatelessWidget {
             ),
             const SizedBox(height: 14),
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _Stat(value: '${(progress.fraction * 100).round()}%', caption: 'complete'),
                 _Stat(value: u.fmtWeight(progress.leftKg), caption: '${u.weight} left'),
                 _Stat(
-                  value: progress.daysLeft < 0 ? '0' : '${progress.daysLeft}',
-                  caption: progress.daysLeft < 0 ? 'overdue' : 'days left',
+                  value: '${progress.daysLeft.abs()}',
+                  caption: progress.daysLeft < 0
+                      ? (progress.daysLeft == -1 ? 'day overdue' : 'days overdue')
+                      : (progress.daysLeft == 1 ? 'day left' : 'days left'),
                 ),
-                _Stat(
-                  value: progress.perWeekKg == null
-                      ? '—'
-                      : '${sign(progress.perWeekKg!)}${u.fmtWeight(progress.perWeekKg!.abs())}',
-                  caption: '${u.weight} / week',
-                ),
+                // Still needed while there's time; afterwards, the pace so far.
+                if (progress.perWeekKg case final need?)
+                  _Stat(value: '${sign(need)}${u.fmtWeight(need.abs())}', caption: '${u.weight} / week')
+                else
+                  _Stat(
+                    value: data.pacePerWeekKg == null
+                        ? '—'
+                        : '${sign(data.pacePerWeekKg!)}${u.fmtWeight(data.pacePerWeekKg!.abs())}',
+                    caption: '${u.weight} / week\nso far',
+                  ),
               ],
             ),
+            if (progress.overdue) ...[
+              const SizedBox(height: 16),
+              _OverdueNote(percent: (progress.fraction * 100).round()),
+            ],
           ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Shown once the target date has passed without reaching the target: how far
+/// along you are and a quick way to pick a new date.
+class _OverdueNote extends StatelessWidget {
+  const _OverdueNote({required this.percent});
+
+  final int percent;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: brandOrange.withValues(alpha: 0.5)),
+        color: brandOrange.withValues(alpha: 0.08),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.event_repeat, color: brandOrange),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Target date passed. You\'re $percent% of the way there. Set a new date to keep going.',
+              style: TextStyle(color: scheme.onSurface),
+            ),
+          ),
+          TextButton(
+            onPressed: () => showGoalSheet(context),
+            child: Text('NEW DATE', style: display(16, color: brandOrange)),
+          ),
         ],
       ),
     );

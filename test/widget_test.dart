@@ -48,6 +48,29 @@ void main() {
       expect(p.leftKg, 0);
     });
 
+    test('overdue once the date passes without reaching the target', () {
+      final p = GoalProgress(goal: goal, currentKg: 75, today: DateTime(2026, 3, 8));
+      expect(p.daysLeft, -7);
+      expect(p.overdue, isTrue);
+      expect(p.perWeekKg, isNull);
+      // Reaching it late isn't overdue; neither is the last day itself.
+      expect(GoalProgress(goal: goal, currentKg: 69, today: DateTime(2026, 3, 8)).overdue, isFalse);
+      expect(GoalProgress(goal: goal, currentKg: 75, today: DateTime(2026, 3, 1)).overdue, isFalse);
+    });
+
+    test('pace so far runs from the start weigh-in to the latest', () {
+      AppData withWeights(List<(DateTime, double)> ws) => AppData(
+            entries: [
+              for (final (i, (d, kg)) in ws.reversed.indexed) Entry(id: i, date: d, minutes: 450, weightKg: kg),
+            ],
+            fields: const [],
+            goal: null,
+            unitSystem: UnitSystem.metric,
+          );
+      expect(withWeights([(DateTime(2026, 1, 1), 80), (DateTime(2026, 1, 29), 78)]).pacePerWeekKg, closeTo(-0.5, 1e-9));
+      expect(withWeights([(DateTime(2026, 1, 1), 80), (DateTime(2026, 1, 4), 79)]).pacePerWeekKg, isNull);
+    });
+
     test('gain goal', () {
       final gain = Goal(targetWeightKg: 60, targetDate: DateTime(2026, 3, 1), startWeightKg: 55);
       final p = GoalProgress(goal: gain, currentKg: 56, today: DateTime(2026, 2, 1));

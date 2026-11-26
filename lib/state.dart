@@ -123,6 +123,15 @@ class AppData {
     return GoalProgress(goal: g, currentKg: latest.weightKg!, today: today);
   }
 
+  /// Average weight change per week (signed kg) from the start weigh-in to
+  /// the latest; null until they're at least a week apart.
+  double? get pacePerWeekKg {
+    final start = startMain, latest = latestMain;
+    if (start == null || latest == null) return null;
+    final days = latest.date.difference(start.date).inDays;
+    return days < 7 ? null : (latest.weightKg! - start.weightKg!) / (days / 7);
+  }
+
   String labelFor(String key) =>
       fields.where((f) => f.key == key).firstOrNull?.label ?? key;
 

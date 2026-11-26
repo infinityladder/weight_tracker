@@ -143,6 +143,9 @@ class GoalProgress {
 
   double get leftKg => reached ? 0 : (currentKg - target).abs();
 
+  /// The target date has passed without reaching the target.
+  bool get overdue => !reached && daysLeft < 0;
+
   /// Signed kg per week still needed (negative = lose). Null when no time left.
   double? get perWeekKg =>
       daysLeft > 0 && !reached ? (target - currentKg) / (daysLeft / 7) : null;
