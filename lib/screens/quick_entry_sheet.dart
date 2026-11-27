@@ -89,7 +89,6 @@ class _WeightSheetState extends ConsumerState<_WeightSheet> {
     final u = data.units;
     final scheme = Theme.of(context).colorScheme;
     final last = data.latestMain?.weightKg;
-    final inWindow = data.window.contains(_minutes);
 
     return Padding(
       padding: EdgeInsets.fromLTRB(
@@ -141,12 +140,6 @@ class _WeightSheetState extends ConsumerState<_WeightSheet> {
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            inWindow ? 'Main weigh-in' : 'Outside main window – saved as a note',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: inWindow ? brandOrange : scheme.onSurfaceVariant, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 18),
           FilledButton(onPressed: _save, child: const Text('SAVE')),

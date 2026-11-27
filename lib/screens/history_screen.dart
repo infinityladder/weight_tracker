@@ -131,7 +131,6 @@ class _EntryTile extends StatelessWidget {
     final u = data.units;
     final e = entry;
     final muted = scheme.onSurfaceVariant;
-    final main = data.isMain(e);
     final measures = [
       for (final f in data.fields)
         if (e.measurements[f.key] != null) '${f.label} ${u.fmtLength(e.measurements[f.key]!)}',
@@ -154,12 +153,11 @@ class _EntryTile extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: main ? brandOrange : scheme.surfaceContainerHighest,
+                        color: scheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(6),
                       ),
-                      child: Text(
-                          main ? '${timeLabel(context, e.minutes)} · MAIN' : timeLabel(context, e.minutes),
-                          style: display(13, weight: FontWeight.w700, color: main ? Colors.white : muted)),
+                      child: Text(timeLabel(context, e.minutes),
+                          style: display(13, weight: FontWeight.w700, color: muted)),
                     ),
                     if (measures.isNotEmpty) ...[
                       const SizedBox(height: 6),
@@ -178,9 +176,8 @@ class _EntryTile extends StatelessWidget {
                         TextSpan(text: u.fmtWeight(e.weightKg!)),
                         TextSpan(text: ' ${u.weight}', style: display(16, color: muted)),
                       ]),
-                      style: display(34, color: main ? null : muted.withValues(alpha: 0.7)),
+                      style: display(34),
                     ),
-                    if (!main) Text('note', style: TextStyle(fontSize: 12, color: muted)),
                   ],
                 ),
             ],

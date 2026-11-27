@@ -47,8 +47,7 @@ String decodeCsvBytes(List<int> b) {
 /// Reads a CSV in the format [buildCsv] writes: date, optional time, an
 /// optional weight column ("weight_kg" / "weight_lb") and one column per
 /// measurement ("Waist (cm)", "Waist (in)" or just "Waist"), matched to
-/// [fields] by name. The main_weigh_in column is ignored; it's worked out
-/// from the time.
+/// [fields] by name. A main_weigh_in column (from older exports) is ignored.
 CsvImport parseCsvImport(String text, List<MeasureField> fields) {
   text = text.replaceFirst('﻿', '');
   // Excel in many regions saves with ";" (or tabs) instead of commas.

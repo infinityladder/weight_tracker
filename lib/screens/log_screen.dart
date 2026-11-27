@@ -143,9 +143,7 @@ class _LogScreenState extends ConsumerState<LogScreen> {
     final scheme = Theme.of(context).colorScheme;
     final clash = _clash(data);
     final updating = widget.editing != null || clash != null;
-    final inWindow = data.window.contains(_minutes);
     final fields = data.visibleFields;
-    final windowText = '${timeLabel(context, data.window.start)}–${timeLabel(context, data.window.end)}';
 
     return ListView(
       padding: readablePadding(context),
@@ -176,23 +174,6 @@ class _LogScreenState extends ConsumerState<LogScreen> {
                   child: Text(timeLabel(context, _minutes),
                       maxLines: 1, style: display(24, weight: FontWeight.w800)),
                 ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Icon(inWindow ? Icons.star : Icons.sticky_note_2_outlined,
-                size: 20, color: inWindow ? brandOrange : scheme.onSurfaceVariant),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(
-                inWindow
-                    ? 'Main weigh-in window ($windowText)'
-                    : 'Outside main window ($windowText) – weight is saved as a note',
-                style: TextStyle(
-                    color: inWindow ? brandOrange : scheme.onSurfaceVariant, fontWeight: FontWeight.w600),
               ),
             ),
           ],

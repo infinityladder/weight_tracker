@@ -7,17 +7,7 @@ import 'package:body_log/units.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('main window contains its ends and can wrap midnight', () {
-    const w = WeighWindow(6 * 60, 10 * 60);
-    expect(w.contains(6 * 60), isTrue);
-    expect(w.contains(10 * 60), isTrue);
-    expect(w.contains(10 * 60 + 1), isFalse);
-    const night = WeighWindow(22 * 60, 2 * 60);
-    expect(night.contains(23 * 60), isTrue);
-    expect(night.contains(60), isTrue);
-    expect(night.contains(12 * 60), isFalse);
-    expect(WeighWindow.decode(w.encode()), w);
-    expect(WeighWindow.decode('junk'), WeighWindow.defaultWindow);
+  test('hhmm pads hours and minutes', () {
     expect(hhmm(7 * 60 + 5), '07:05');
   });
 
@@ -79,37 +69,33 @@ void main() {
     });
   });
 
-  test('earliest weight in the window is the main record; the rest are notes', () {
+  test("any time of day counts; a day's last weight is its weigh-in", () {
     final d1 = DateTime(2026, 1, 1), d2 = DateTime(2026, 1, 2);
     final entries = [
       Entry(id: 1, date: d1, minutes: 7 * 60, weightKg: 80),
       Entry(id: 2, date: d1, minutes: 13 * 60, weightKg: 80.9),
       Entry(id: 3, date: d2, minutes: 6 * 60 + 30, weightKg: 79.5),
-      Entry(id: 4, date: d2, minutes: 9 * 60, weightKg: 79.7), // second in-window weigh-in
-      Entry(id: 5, date: d2, minutes: 19 * 60, weightKg: 81),
-      Entry(id: 6, date: d2, minutes: 8 * 60, measurements: const {'waist': 90}), // no weight
+      Entry(id: 4, date: d2, minutes: 23 * 60 + 30, weightKg: 81), // late night
+      Entry(id: 5, date: d2, minutes: 23 * 60 + 50, measurements: const {'waist': 90}), // no weight
     ]..sort(Entry.newestFirst);
     final data = AppData(entries: entries, fields: const [], goal: null, unitSystem: UnitSystem.metric);
-    expect(data.mainWeights.map((e) => e.id), [3, 1]);
-    expect(data.latestMain!.id, 3);
-    expect(data.firstMain!.id, 1);
-    expect(data.notesFor(d2).map((e) => e.id), [4, 5]);
-
-    final shifted = data.copyWith(window: const WeighWindow(12 * 60, 14 * 60));
-    expect(shifted.mainWeights.map((e) => e.id), [2]);
+    expect(data.mainWeights.map((e) => e.id), [4, 2]);
+    expect(data.latestMain!.id, 4);
+    expect(data.firstMain!.id, 2);
+    expect(data.isMain(entries.firstWhere((e) => e.id == 3)), isFalse);
   });
 
   test('BMI uses the latest main weigh-in and the height', () {
     final d = DateTime(2026, 1, 1);
     final entries = [
       Entry(id: 1, date: d, minutes: 7 * 60, weightKg: 72),
-      Entry(id: 2, date: d, minutes: 20 * 60, weightKg: 90), // a note, not the main record
+      Entry(id: 2, date: d, minutes: 6 * 60, weightKg: 90), // earlier the same day
     ]..sort(Entry.newestFirst);
     final data = AppData(entries: entries, fields: const [], goal: null, unitSystem: UnitSystem.metric);
     expect(data.latestBmi, isNull); // no height yet
     final tall = data.copyWith(heightCm: () => 180);
     expect(tall.latestBmi, closeTo(22.2, 0.05));
-    expect(tall.copyWith(window: const WeighWindow(0, 23 * 60 + 59)).heightCm, 180); // kept
+    expect(tall.copyWith(unitSystem: UnitSystem.imperial).heightCm, 180); // kept
     expect(tall.copyWith(heightCm: () => null).latestBmi, isNull);
     expect([for (final b in <double>[18.4, 18.5, 24.9, 25, 29.9, 30]) bmiCategory(b)],
         ['Underweight', 'Healthy', 'Healthy', 'Overweight', 'Overweight', 'Obese']);
@@ -226,7 +212,7 @@ void main() {
     expect(partFor(custom), isNull);
   });
 
-  test('csv export has time and main flag, quotes labels, includes hidden fields', () {
+  test('csv export has time, quotes labels, includes hidden fields', () {
     final data = AppData(
       entries: [
         Entry(id: 2, date: DateTime(2026, 1, 1), minutes: 18 * 60, weightKg: 81),
@@ -241,9 +227,9 @@ void main() {
     );
     expect(
       buildCsv(data),
-      'date,time,main_weigh_in,weight_kg,Waist (cm),"Arm, left (cm)"\n'
-      '2026-01-01,07:05,yes,80.00,90.0,30.0\n'
-      '2026-01-01,18:00,no,81.00,,\n',
+      'date,time,weight_kg,Waist (cm),"Arm, left (cm)"\n'
+      '2026-01-01,07:05,80.00,90.0,30.0\n'
+      '2026-01-01,18:00,81.00,,\n',
     );
   });
 

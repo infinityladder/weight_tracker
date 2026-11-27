@@ -13,7 +13,6 @@ class AppData {
     required this.fields,
     required this.goal,
     required this.unitSystem,
-    this.window = WeighWindow.defaultWindow,
     this.startDate,
     this.body = BodyType.male,
     this.skinTone = SkinTone.light,
@@ -27,9 +26,6 @@ class AppData {
   final List<MeasureField> fields;
   final Goal? goal;
   final UnitSystem unitSystem;
-
-  /// Weights logged inside this window are the main record.
-  final WeighWindow window;
 
   /// Chosen starting point for "since start" and goals; null = first weigh-in.
   final DateTime? startDate;
@@ -52,7 +48,7 @@ class AppData {
   /// Analyses switched on for the Health screen.
   final Set<HealthAnalysis> healthShown;
 
-  /// BMI from the latest main weigh-in; null without a height or weight.
+  /// BMI from the latest weigh-in; null without a height or weight.
   double? get latestBmi {
     final h = heightCm, w = latestMain?.weightKg;
     return h == null || w == null ? null : bmi(w, h);
@@ -77,15 +73,14 @@ class AppData {
   /// The standard measurements, shown or not, in body order.
   List<MeasureField> get standardFields => fields.where((f) => f.builtIn).toList();
 
-  /// The main record, newest first: per date, the earliest weight logged
-  /// inside the main window. Every other weight is a note.
+  /// One weight per date, newest first: the last one logged that day, at
+  /// any time of day.
   late final List<Entry> mainWeights = () {
     final seen = <DateTime>{};
-    final out = [
-      for (final e in entries.reversed)
-        if (e.weightKg != null && window.contains(e.minutes) && seen.add(e.date)) e,
+    return [
+      for (final e in entries)
+        if (e.weightKg != null && seen.add(e.date)) e,
     ];
-    return out.reversed.toList();
   }();
 
   late final Set<int?> _mainIds = {for (final e in mainWeights) e.id};
@@ -95,26 +90,19 @@ class AppData {
   Entry? get latestMain => mainWeights.firstOrNull;
   Entry? get firstMain => mainWeights.lastOrNull;
 
-  /// The starting weigh-in: the first main weigh-in on or after [startDate].
+  /// The starting weigh-in: the first weigh-in on or after [startDate].
   Entry? get startMain {
     final d = startDate;
     if (d == null) return firstMain;
     return mainWeights.reversed.where((e) => !e.date.isBefore(d)).firstOrNull ?? firstMain;
   }
 
-  /// Dates that have a main weigh-in.
+  /// Dates that have a weigh-in.
   late final Set<DateTime> mainDates = {for (final e in mainWeights) e.date};
 
   Entry? entryAt(DateTime date, int minutes) {
     final d = dateOnly(date);
     return entries.where((e) => e.date == d && e.minutes == minutes).firstOrNull;
-  }
-
-  /// Weights logged on [day] that aren't the main weigh-in, earliest first.
-  List<Entry> notesFor(DateTime day) {
-    final d = dateOnly(day);
-    return entries.where((e) => e.date == d && e.weightKg != null && !isMain(e)).toList()
-      ..sort((a, b) => a.minutes.compareTo(b.minutes));
   }
 
   GoalProgress? progress(DateTime today) {
@@ -156,13 +144,12 @@ class AppData {
     return logged.lastWhere((m) => !m.$1.isAfter(start), orElse: () => logged.first);
   }
 
-  AppData copyWith({UnitSystem? unitSystem, WeighWindow? window, BodyType? body, SkinTone? skinTone, double? Function()? heightCm, BmiRanges? bmiRanges, Set<HealthAnalysis>? healthShown}) =>
+  AppData copyWith({UnitSystem? unitSystem, BodyType? body, SkinTone? skinTone, double? Function()? heightCm, BmiRanges? bmiRanges, Set<HealthAnalysis>? healthShown}) =>
       AppData(
         entries: entries,
         fields: fields,
         goal: goal,
         unitSystem: unitSystem ?? this.unitSystem,
-        window: window ?? this.window,
         startDate: startDate,
         body: body ?? this.body,
         skinTone: skinTone ?? this.skinTone,
@@ -186,7 +173,6 @@ Future<AppData> loadAppData(BodyLogDb db) async {
     fields: await db.fields(),
     goal: goalJson == null ? null : Goal.fromJson(jsonDecode(goalJson) as Map<String, dynamic>),
     unitSystem: (await db.setting('units')) == 'imperial' ? UnitSystem.imperial : UnitSystem.metric,
-    window: WeighWindow.decode(await db.setting('window')),
   );
 }
 
@@ -217,11 +203,6 @@ class AppController extends Notifier<AppData> {
   Future<void> setUnits(UnitSystem system) async {
     state = state.copyWith(unitSystem: system);
     await _db.setSetting('units', system.name);
-  }
-
-  Future<void> setWindow(WeighWindow window) async {
-    state = state.copyWith(window: window);
-    await _db.setSetting('window', window.encode());
   }
 
   Future<void> setBody(BodyType body) async {
@@ -273,7 +254,6 @@ class AppController extends Notifier<AppData> {
       fields: state.fields,
       goal: g,
       unitSystem: state.unitSystem,
-      window: state.window,
       startDate: date,
       body: state.body,
       heightCm: state.heightCm,
@@ -288,7 +268,7 @@ class AppController extends Notifier<AppData> {
   }
 
   /// Keeps the original start weight when editing. A new goal starts from the
-  /// chosen start weigh-in, or the latest main weigh-in when none is chosen.
+  /// chosen start weigh-in, or the latest weigh-in when none is chosen.
   Future<void> setGoal(double targetKg, DateTime targetDate) async {
     final start = state.goal?.startWeightKg ??
         (state.startDate != null ? state.startMain : state.latestMain)?.weightKg;
@@ -348,7 +328,6 @@ String buildCsv(AppData data) {
   final header = [
     'date',
     'time',
-    'main_weigh_in',
     'weight_${u.weight}',
     for (final f in data.fields) '${f.label} (${u.length})',
   ];
@@ -358,7 +337,6 @@ String buildCsv(AppData data) {
       [
         dateKey(e.date),
         hhmm(e.minutes),
-        data.isMain(e) ? 'yes' : 'no',
         e.weightKg == null ? '' : u.fmtWeight(e.weightKg!),
         for (final f in data.fields)
           e.measurements[f.key] == null ? '' : u.fmtLength(e.measurements[f.key]!),

@@ -56,7 +56,6 @@ class _TrendScreenState extends ConsumerState<TrendScreen> {
           const SizedBox(height: 16),
           if (field == null) ...[
             Scoreboard(data: data, onLog: () => showQuickEntry(context)),
-            TodaysNotes(data: data),
             const SizedBox(height: 16),
             GoalCard(data: data),
             const SizedBox(height: 16),
@@ -203,7 +202,7 @@ class StatsCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (weights.isEmpty)
-            Text('No main weigh-ins yet', style: TextStyle(color: muted))
+            Text('No weigh-ins yet', style: TextStyle(color: muted))
           else
             Row(
               children: [
@@ -268,12 +267,12 @@ class Scoreboard extends StatelessWidget {
           ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('MAIN WEIGH-IN', style: label(context, color: white70)),
+                Text('LATEST WEIGH-IN', style: label(context, color: white70)),
                 const SizedBox(height: 14),
                 Text('NO WEIGH-IN YET', style: display(44, color: Colors.white)),
                 const SizedBox(height: 6),
                 Text(
-                  'Log a weight inside your main weigh-in window to start your scoreboard.',
+                  'Log a weight to start your scoreboard.',
                   style: TextStyle(color: white70, fontSize: 15),
                 ),
                 const SizedBox(height: 14),
@@ -295,7 +294,7 @@ class Scoreboard extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: Text('MAIN WEIGH-IN', style: label(context, color: white70)),
+                      child: Text('LATEST WEIGH-IN', style: label(context, color: white70)),
                     ),
                     Text(
                       '${DateFormat('EEE d MMM').format(latest.date)}  ${timeLabel(context, latest.minutes)}'
@@ -370,36 +369,6 @@ class _ChangePill extends StatelessWidget {
   }
 }
 
-class TodaysNotes extends StatelessWidget {
-  const TodaysNotes({super.key, required this.data});
-
-  final AppData data;
-
-  @override
-  Widget build(BuildContext context) {
-    final notes = data.notesFor(DateTime.now());
-    if (notes.isEmpty) return const SizedBox.shrink();
-    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(6, 12, 6, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text("TODAY'S NOTES", style: label(context)),
-          const SizedBox(height: 4),
-          Text(
-            [
-              for (final n in notes)
-                '${timeLabel(context, n.minutes)}  ${data.units.fmtWeight(n.weightKg!)} ${data.units.weight}',
-            ].join('   ·   '),
-            style: TextStyle(color: muted, fontWeight: FontWeight.w600),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class GoalCard extends StatelessWidget {
   const GoalCard({super.key, required this.data});
 
@@ -419,7 +388,7 @@ class GoalCard extends StatelessWidget {
           children: [
             Text(
               data.latestMain == null
-                  ? 'Log a main weigh-in first, then set a target.'
+                  ? 'Log a weight first, then set a target.'
                   : 'Set a target weight and date to track your progress.',
               style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
@@ -606,7 +575,7 @@ class TrendCard extends StatelessWidget {
     final fields = data.visibleFields;
     final isWeight = metric == 'weight';
 
-    // One point per date, oldest first. Weight: main weigh-ins only.
+    // One point per date, oldest first. Weight: the day's last weigh-in.
     // Measurements: the earliest entry that has a value that day.
     final byDate = <DateTime, double>{};
     for (final e in data.entries.reversed) {
@@ -655,7 +624,7 @@ class TrendCard extends StatelessWidget {
             child: byDate.isEmpty
                 ? Center(
                     child: Text(
-                      'No ${isWeight ? 'main weigh-ins' : data.labelFor(metric).toLowerCase()} logged yet',
+                      'No ${isWeight ? 'weigh-ins' : data.labelFor(metric).toLowerCase()} logged yet',
                       style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                   )

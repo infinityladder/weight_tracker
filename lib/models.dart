@@ -9,35 +9,6 @@ String hhmm(int minutes) =>
 
 int minutesOf(DateTime t) => t.hour * 60 + t.minute;
 
-/// Time of day range whose weights count as the main record. Inclusive at both
-/// ends; may wrap past midnight (e.g. 22:00–02:00).
-class WeighWindow {
-  const WeighWindow(this.start, this.end);
-
-  static const defaultWindow = WeighWindow(6 * 60, 10 * 60);
-
-  final int start;
-  final int end;
-
-  bool contains(int minutes) =>
-      start <= end ? minutes >= start && minutes <= end : minutes >= start || minutes <= end;
-
-  String encode() => '$start-$end';
-
-  static WeighWindow decode(String? s) {
-    final parts = s?.split('-');
-    if (parts == null || parts.length != 2) return defaultWindow;
-    final a = int.tryParse(parts[0]), b = int.tryParse(parts[1]);
-    return a == null || b == null ? defaultWindow : WeighWindow(a, b);
-  }
-
-  @override
-  bool operator ==(Object other) => other is WeighWindow && other.start == start && other.end == end;
-
-  @override
-  int get hashCode => Object.hash(start, end);
-}
-
 class Entry {
   const Entry({
     this.id,
@@ -101,7 +72,7 @@ class Goal {
   final double targetWeightKg;
   final DateTime targetDate;
 
-  /// Latest main weigh-in at the time the goal was set.
+  /// Latest weigh-in at the time the goal was set.
   final double startWeightKg;
 
   Map<String, Object> toJson() => {

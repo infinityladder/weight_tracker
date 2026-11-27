@@ -6,7 +6,7 @@ import '../models.dart';
 import '../state.dart';
 import '../theme.dart';
 
-/// Calendar of main weigh-ins; the chosen day becomes the starting point for
+/// Calendar of weigh-ins; the chosen day becomes the starting point for
 /// "since start" and the goal. Does nothing when there are no weigh-ins.
 Future<void> showStartSheet(BuildContext context) async {
   final container = ProviderScope.containerOf(context, listen: false);
