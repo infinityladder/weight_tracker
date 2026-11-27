@@ -58,11 +58,16 @@ class _SettingsSheetState extends ConsumerState<_SettingsSheet> {
             onSelectionChanged: (s) => ref.read(appProvider.notifier).setUnits(s.first),
           ),
           const SizedBox(height: 24),
-          Text('BODY', style: label(context)),
+          Text('USER PREFERENCES', style: label(context)),
+          const SizedBox(height: 8),
+          AppearancePicker(data: data),
+          const SizedBox(height: 18),
+          Text('Body', style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 16)),
           const SizedBox(height: 8),
           BodyTypePicker(data: data),
           const SizedBox(height: 10),
           SkinTonePicker(data: data),
+          OutfitPicker(data: data),
           const SizedBox(height: 24),
           Text('HEALTH', style: label(context)),
           const SizedBox(height: 4),
@@ -326,6 +331,64 @@ class _HeightFieldState extends ConsumerState<HeightField> {
   }
 }
 
+/// A caption and a row of round colour swatches, the chosen one ringed.
+class SwatchRow<T> extends StatelessWidget {
+  const SwatchRow({
+    super.key,
+    required this.caption,
+    required this.options,
+    required this.selected,
+    required this.onSelect,
+  });
+
+  final String caption;
+
+  /// Value -> (colour, spoken name).
+  final Map<T, (Color, String)> options;
+  final T selected;
+  final ValueChanged<T> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Expanded(child: Text(caption, style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 16))),
+        for (final MapEntry(key: value, value: (colour, name)) in options.entries)
+          Semantics(
+            button: true,
+            selected: value == selected,
+            label: name,
+            child: InkResponse(
+              onTap: () => onSelect(value),
+              radius: 22,
+              child: SizedBox(
+                width: 44,
+                height: 52,
+                child: Center(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: colour,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: value == selected ? brandOrange : scheme.outlineVariant,
+                        width: value == selected ? 3 : 1,
+                      ),
+                    ),
+                    child: value == selected ? const Icon(Icons.check, size: 18, color: Colors.white) : null,
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 /// Skin colour swatches for the figure.
 class SkinTonePicker extends ConsumerWidget {
   const SkinTonePicker({super.key, required this.data});
@@ -339,43 +402,46 @@ class SkinTonePicker extends ConsumerWidget {
   };
 
   @override
+  Widget build(BuildContext context, WidgetRef ref) => SwatchRow<SkinTone>(
+        caption: 'Skin colour',
+        options: {for (final t in SkinTone.values) t: (swatches[t]!, '${t.name} skin')},
+        selected: data.skinTone,
+        onSelect: ref.read(appProvider.notifier).setSkinTone,
+      );
+}
+
+/// Clothes colour swatches for the figure.
+class OutfitPicker extends ConsumerWidget {
+  const OutfitPicker({super.key, required this.data});
+
+  final AppData data;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => SwatchRow<Outfit>(
+        caption: 'Outfit',
+        options: {for (final o in Outfit.values) o: (Color(o.swatch), '${o.name} outfit')},
+        selected: data.outfit,
+        onSelect: ref.read(appProvider.notifier).setOutfit,
+      );
+}
+
+/// System / light / dark screens.
+class AppearancePicker extends ConsumerWidget {
+  const AppearancePicker({super.key, required this.data});
+
+  final AppData data;
+
+  @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final scheme = Theme.of(context).colorScheme;
-    return Row(
-      children: [
-        Text('Skin colour', style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 16)),
-        const Spacer(),
-        for (final tone in SkinTone.values)
-          Semantics(
-            button: true,
-            selected: tone == data.skinTone,
-            label: '${tone.name} skin',
-            child: InkResponse(
-              onTap: () => ref.read(appProvider.notifier).setSkinTone(tone),
-              radius: 26,
-              child: SizedBox(
-                width: 52,
-                height: 52,
-                child: Center(
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      color: swatches[tone],
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: tone == data.skinTone ? brandOrange : scheme.outlineVariant,
-                        width: tone == data.skinTone ? 3 : 1,
-                      ),
-                    ),
-                    child: tone == data.skinTone ? const Icon(Icons.check, size: 20, color: Colors.white) : null,
-                  ),
-                ),
-              ),
-            ),
-          ),
+    return SegmentedButton<Appearance>(
+      showSelectedIcon: false,
+      segments: const [
+        ButtonSegment(value: Appearance.system, icon: Icon(Icons.brightness_auto), label: Text('AUTO')),
+        ButtonSegment(value: Appearance.light, icon: Icon(Icons.light_mode), label: Text('LIGHT')),
+        ButtonSegment(value: Appearance.dark, icon: Icon(Icons.dark_mode), label: Text('DARK')),
       ],
+      selected: {data.appearance},
+      onSelectionChanged: (s) => ref.read(appProvider.notifier).setAppearance(s.first),
     );
   }
 }

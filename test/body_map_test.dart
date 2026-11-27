@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:body_log/body_map.dart';
@@ -16,6 +17,35 @@ const _arm = ['L-Bicep', 'L-Forearm'];
 
 void main() {
   for (final body in Figure.values) {
+    testWidgets('the ${body.name} outfit layer lines up with its picture', (tester) async {
+      Future<(int, int, ByteData)> load(String path) async {
+        final codec = await ui.instantiateImageCodec(File(path).readAsBytesSync());
+        final image = (await codec.getNextFrame()).image;
+        return (image.width, image.height, (await image.toByteData())!);
+      }
+
+      final (pic, clothes) = (await tester.runAsync(() async => (
+            await load(bodyImages[body]!),
+            await load(clothesImage(body)),
+          )))!;
+      // Same size, so it overlays the picture exactly.
+      expect((clothes.$1, clothes.$2), (pic.$1, pic.$2));
+      // It covers some fabric, but well under half the figure, and only where
+      // the picture is solid.
+      var fabric = 0, solid = 0, stray = 0;
+      for (var i = 0; i < pic.$1 * pic.$2; i++) {
+        final onPic = pic.$3.getUint8(i * 4 + 3) > 128;
+        final onCloth = clothes.$3.getUint8(i * 4 + 3) > 128;
+        if (onPic) solid++;
+        if (onCloth) fabric++;
+        if (onCloth && !onPic) stray++;
+      }
+      expect(fabric, greaterThan(solid * 0.04));
+      expect(fabric, lessThan(solid * 0.4));
+      expect(stray, lessThan(fabric * 0.01));
+    });
+
+
     testWidgets('every standard measure sits on the ${body.name} picture', (tester) async {
       final (width, height, pixels) = (await tester.runAsync(() async {
         final codec = await ui.instantiateImageCodec(File(bodyImages[body]!).readAsBytesSync());

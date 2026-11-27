@@ -34,17 +34,22 @@ Future<void> main() async {
   ));
 }
 
-class BodyLogApp extends StatelessWidget {
+class BodyLogApp extends ConsumerWidget {
   const BodyLogApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final appearance = ref.watch(appProvider.select((d) => d.appearance));
     return MaterialApp(
       title: 'Body log',
       debugShowCheckedModeBanner: false,
       theme: buildTheme(Brightness.light),
       darkTheme: buildTheme(Brightness.dark),
-      themeMode: ThemeMode.system,
+      themeMode: switch (appearance) {
+        Appearance.system => ThemeMode.system,
+        Appearance.light => ThemeMode.light,
+        Appearance.dark => ThemeMode.dark,
+      },
       home: const HomeScreen(),
     );
   }
@@ -104,6 +109,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             selectedKey: _selected,
             onTap: _measure,
             figure: data.figure,
+            outfit: data.outfit,
           );
     final nav = Row(
       children: [

@@ -16,6 +16,8 @@ class AppData {
     this.startDate,
     this.body = BodyType.male,
     this.skinTone = SkinTone.light,
+    this.outfit = Outfit.black,
+    this.appearance = Appearance.system,
     this.heightCm,
     this.bmiRanges = BmiRanges.standard,
     this.healthShown = const {HealthAnalysis.bmi, HealthAnalysis.waistRatio, HealthAnalysis.waistHip},
@@ -35,6 +37,12 @@ class AppData {
 
   /// Skin of that figure.
   final SkinTone skinTone;
+
+  /// Colour of the figure's clothes.
+  final Outfit outfit;
+
+  /// Light, dark or follow the phone.
+  final Appearance appearance;
 
   /// The picture drawn for [body] in [skinTone].
   Figure get figure => Figure.of(body, skinTone);
@@ -144,7 +152,7 @@ class AppData {
     return logged.lastWhere((m) => !m.$1.isAfter(start), orElse: () => logged.first);
   }
 
-  AppData copyWith({UnitSystem? unitSystem, BodyType? body, SkinTone? skinTone, double? Function()? heightCm, BmiRanges? bmiRanges, Set<HealthAnalysis>? healthShown}) =>
+  AppData copyWith({UnitSystem? unitSystem, BodyType? body, SkinTone? skinTone, Outfit? outfit, Appearance? appearance, double? Function()? heightCm, BmiRanges? bmiRanges, Set<HealthAnalysis>? healthShown}) =>
       AppData(
         entries: entries,
         fields: fields,
@@ -153,6 +161,8 @@ class AppData {
         startDate: startDate,
         body: body ?? this.body,
         skinTone: skinTone ?? this.skinTone,
+        outfit: outfit ?? this.outfit,
+        appearance: appearance ?? this.appearance,
         heightCm: heightCm == null ? this.heightCm : heightCm(),
         bmiRanges: bmiRanges ?? this.bmiRanges,
         healthShown: healthShown ?? this.healthShown,
@@ -166,6 +176,8 @@ Future<AppData> loadAppData(BodyLogDb db) async {
     startDate: start == null ? null : DateTime.tryParse(start),
     body: (await db.setting('body')) == 'female' ? BodyType.female : BodyType.male,
     skinTone: SkinTone.decode(await db.setting('skin')),
+    outfit: Outfit.decode(await db.setting('outfit')),
+    appearance: Appearance.decode(await db.setting('appearance')),
     heightCm: double.tryParse(await db.setting('height_cm') ?? ''),
     bmiRanges: (await db.setting('bmi_ranges')) == 'asian' ? BmiRanges.asian : BmiRanges.standard,
     healthShown: HealthAnalysis.decode(await db.setting('health')),
@@ -213,6 +225,16 @@ class AppController extends Notifier<AppData> {
   Future<void> setSkinTone(SkinTone tone) async {
     state = state.copyWith(skinTone: tone);
     await _db.setSetting('skin', tone.name);
+  }
+
+  Future<void> setOutfit(Outfit outfit) async {
+    state = state.copyWith(outfit: outfit);
+    await _db.setSetting('outfit', outfit.name);
+  }
+
+  Future<void> setAppearance(Appearance appearance) async {
+    state = state.copyWith(appearance: appearance);
+    await _db.setSetting('appearance', appearance.name);
   }
 
   /// Sets the height used for BMI; null clears it.

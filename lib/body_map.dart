@@ -47,6 +47,10 @@ const bodyImages = {
   Figure.femaleDark: 'images/body_log_female_dark_skin.png',
 };
 
+/// The fabric layer of a body picture, tinted with the outfit colour
+/// (made by tool/clothes_mask.py).
+String clothesImage(Figure f) => bodyImages[f]!.replaceFirst('images/', 'images/clothes/');
+
 /// Where each body picture sits in the 200 x 440 box. The light pictures fill
 /// the width; the others are framed differently, so they're scaled to the
 /// same body height (or as tall as the outstretched hands allow) and centred
@@ -223,10 +227,12 @@ class BodyMap extends StatelessWidget {
     required this.onTap,
     this.selectedKey,
     this.figure = Figure.male,
+    this.outfit = Outfit.black,
   });
 
   final List<MeasureField> fields;
   final Figure figure;
+  final Outfit outfit;
 
   /// Display text for a field's latest value, or null when never logged.
   final String? Function(MeasureField f) valueText;
@@ -372,6 +378,20 @@ class BodyMap extends StatelessWidget {
               height: pic.height * s,
               child: Image.asset(bodyImages[figure]!, fit: BoxFit.contain, filterQuality: FilterQuality.medium),
             ),
+            if (outfit.tint case final tint?)
+              Positioned(
+                left: ox + pic.left * s,
+                top: oy + pic.top * s,
+                width: pic.width * s,
+                height: pic.height * s,
+                child: Image.asset(
+                  clothesImage(figure),
+                  fit: BoxFit.contain,
+                  filterQuality: FilterQuality.medium,
+                  color: Color(tint),
+                  colorBlendMode: BlendMode.modulate,
+                ),
+              ),
             Positioned.fill(
               child: CustomPaint(
                 painter: _HighlightPainter(ringColor: scheme.surface, highlight: highlight),

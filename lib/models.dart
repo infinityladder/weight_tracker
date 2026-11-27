@@ -187,6 +187,36 @@ enum SkinTone {
   static SkinTone decode(String? name) => values.firstWhere((t) => t.name == name, orElse: () => light);
 }
 
+/// Colour of the figure's shorts and top. [black] is the picture as drawn;
+/// the others tint the fabric (ARGB), keeping its shading and the trim.
+enum Outfit {
+  black(null, 0xFF1E1E1E),
+  navy(0xFF2A4BB0, 0xFF22398A),
+  red(0xFFD02A3C, 0xFFB32436),
+  green(0xFF23905D, 0xFF1F7A4D),
+  pink(0xFFE0559F, 0xFFD0478F),
+  grey(0xFFC4CAD2, 0xFF8A9099);
+
+  const Outfit(this.tint, this.swatch);
+
+  /// Multiplied into the fabric layer; null = leave the picture alone.
+  final int? tint;
+
+  /// How the colour looks once worn, for the picker.
+  final int swatch;
+
+  static Outfit decode(String? name) => values.firstWhere((o) => o.name == name, orElse: () => black);
+}
+
+/// Light or dark screens; [system] follows the phone.
+enum Appearance {
+  system,
+  light,
+  dark;
+
+  static Appearance decode(String? name) => values.firstWhere((a) => a.name == name, orElse: () => system);
+}
+
 /// One drawn body: a body type in a skin tone. Each has its own picture,
 /// outline and measurement positions.
 enum Figure {

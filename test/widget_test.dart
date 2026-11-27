@@ -185,6 +185,20 @@ void main() {
     expect(Figure.of(BodyType.female, SkinTone.brown), Figure.femaleBrown);
   });
 
+  test('outfit and appearance are saved by name with safe defaults', () {
+    expect(Outfit.decode('navy'), Outfit.navy);
+    expect(Outfit.decode('nope'), Outfit.black);
+    expect(Outfit.decode(null).tint, isNull); // the picture as drawn
+    expect([for (final o in Outfit.values) if (o != Outfit.black) o.tint], everyElement(isNotNull));
+    expect(Appearance.decode('light'), Appearance.light);
+    expect(Appearance.decode('dark'), Appearance.dark);
+    expect(Appearance.decode(null), Appearance.system);
+    final data = AppData(entries: const [], fields: const [], goal: null, unitSystem: UnitSystem.metric);
+    final dressed = data.copyWith(outfit: Outfit.red, appearance: Appearance.dark);
+    expect((dressed.outfit, dressed.appearance), (Outfit.red, Appearance.dark));
+    expect(dressed.copyWith(skinTone: SkinTone.dark).outfit, Outfit.red); // kept
+  });
+
   test('body parts match by name and side', () {
     MeasureField f(String label) => MeasureField(key: label, label: label, builtIn: false, hidden: false, sortOrder: 0);
     final lThigh = partFor(f('L-Thigh'))!, rThigh = partFor(f('R-Thigh'))!;
