@@ -8,21 +8,40 @@ import '../theme.dart';
 import '../units.dart';
 import 'data_transfer.dart';
 
-Future<void> showSettingsSheet(BuildContext context) => showModalBottomSheet(
+/// Opens Settings. [focusHeight] scrolls to the height box and puts the
+/// cursor in it (from the Health screen's "Add height").
+Future<void> showSettingsSheet(BuildContext context, {bool focusHeight = false}) => showModalBottomSheet(
   context: context,
   isScrollControlled: true,
   showDragHandle: true,
-  builder: (_) => const _SettingsSheet(),
+  builder: (_) => _SettingsSheet(focusHeight: focusHeight),
 );
 
 class _SettingsSheet extends ConsumerStatefulWidget {
-  const _SettingsSheet();
+  const _SettingsSheet({this.focusHeight = false});
+
+  final bool focusHeight;
 
   @override
   ConsumerState<_SettingsSheet> createState() => _SettingsSheetState();
 }
 
 class _SettingsSheetState extends ConsumerState<_SettingsSheet> {
+  final _heightKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.focusHeight) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final target = _heightKey.currentContext;
+        if (target != null && target.mounted) {
+          Scrollable.ensureVisible(target, alignment: 0.3, duration: const Duration(milliseconds: 300));
+        }
+      });
+    }
+  }
+
   Widget _dataButton(IconData icon, String text, VoidCallback onPressed) => OutlinedButton.icon(
     onPressed: onPressed,
     icon: Icon(icon),
@@ -90,10 +109,10 @@ class _SettingsSheetState extends ConsumerState<_SettingsSheet> {
             ),
           if (data.healthShown.any((a) => a.usesHeight)) ...[
             const SizedBox(height: 6),
-            Text('Height', style: TextStyle(color: scheme.onSurfaceVariant)),
+            Text('Height', key: _heightKey, style: TextStyle(color: scheme.onSurfaceVariant)),
             const SizedBox(height: 8),
             // Recreated when the units change so the boxes show the new units.
-            HeightField(key: ValueKey(data.unitSystem), data: data),
+            HeightField(key: ValueKey(data.unitSystem), data: data, autofocus: widget.focusHeight),
           ],
           if (data.healthShown.contains(HealthAnalysis.bmi)) ...[
             const SizedBox(height: 16),
@@ -166,8 +185,11 @@ class _PinnedDoneSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.85),
+    final keyboard = MediaQuery.viewInsetsOf(context).bottom;
+    return Padding(
+      padding: EdgeInsets.only(bottom: keyboard),
+      child: ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.85 - keyboard),
       child: SafeArea(
         top: false,
         child: Column(
@@ -181,6 +203,7 @@ class _PinnedDoneSheet extends StatelessWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }
@@ -264,9 +287,12 @@ class _CustomMeasureRowState extends ConsumerState<CustomMeasureRow> {
 final privacyPolicyUrl = Uri.parse('https://www.infinityladdertechnologies.com/products/simple-body-log/privacy/');
 
 class HeightField extends ConsumerStatefulWidget {
-  const HeightField({super.key, required this.data});
+  const HeightField({super.key, required this.data, this.autofocus = false});
 
   final AppData data;
+
+  /// Put the cursor in the first box when shown.
+  final bool autofocus;
 
   @override
   ConsumerState<HeightField> createState() => _HeightFieldState();
@@ -310,8 +336,9 @@ class _HeightFieldState extends ConsumerState<HeightField> {
     ref.read(appProvider.notifier).setHeight(cm);
   }
 
-  Widget _box(TextEditingController c, String suffix) => TextField(
+  Widget _box(TextEditingController c, String suffix, {bool first = false}) => TextField(
         controller: c,
+        autofocus: first && widget.autofocus,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         style: display(24, weight: FontWeight.w800),
         decoration: InputDecoration(suffixText: suffix),
@@ -320,10 +347,10 @@ class _HeightFieldState extends ConsumerState<HeightField> {
 
   @override
   Widget build(BuildContext context) {
-    if (_metric) return _box(_main, 'cm');
+    if (_metric) return _box(_main, 'cm', first: true);
     return Row(
       children: [
-        Expanded(child: _box(_main, 'ft')),
+        Expanded(child: _box(_main, 'ft', first: true)),
         const SizedBox(width: 12),
         Expanded(child: _box(_inches, 'in')),
       ],

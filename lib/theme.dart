@@ -104,7 +104,10 @@ ThemeData buildTheme(Brightness brightness) {
             (s) => s.contains(WidgetState.selected) ? brandOrange : null),
         foregroundColor: WidgetStateProperty.resolveWith(
             (s) => s.contains(WidgetState.selected) ? Colors.white : scheme.onSurface),
-        iconColor: const WidgetStatePropertyAll(Colors.white),
+        // White on the orange selection, else the text colour so unselected
+        // icons show on the light theme too.
+        iconColor: WidgetStateProperty.resolveWith(
+            (s) => s.contains(WidgetState.selected) ? Colors.white : scheme.onSurface),
         minimumSize: const WidgetStatePropertyAll(Size(0, 50)),
       ),
     ),

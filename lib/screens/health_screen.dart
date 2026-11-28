@@ -21,10 +21,10 @@ class HealthScreen extends ConsumerWidget {
     final muted = Theme.of(context).colorScheme.onSurfaceVariant;
     final shown = data.healthShown;
 
-    Widget settingsButton(String text) => Align(
+    Widget settingsButton(String text, {bool height = false}) => Align(
           alignment: Alignment.centerLeft,
           child: TextButton.icon(
-            onPressed: () => showSettingsSheet(context),
+            onPressed: () => showSettingsSheet(context, focusHeight: height),
             icon: const Icon(Icons.settings, size: 18),
             label: Text(text, style: display(16, color: brandOrange)),
           ),
@@ -52,7 +52,7 @@ class HealthScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Add your height to see these analyses.', style: TextStyle(color: muted)),
-                  settingsButton('ADD HEIGHT'),
+                  settingsButton('ADD HEIGHT', height: true),
                 ],
               ),
             ),
