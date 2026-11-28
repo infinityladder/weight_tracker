@@ -1,7 +1,7 @@
 # Play Console record — Simple Body Log
 
 Every answer given in Play Console → **App content** and **Store settings**, with the reason
-and what would change it. Written by `development_readmes/play_console_checklist/`; the change
+and what would change it. Written by `development_readmes/play-console-checklist/`; the change
 map is in [README.md](README.md).
 
 - Package: `com.simplebodylog.app` · Play name: **Simple Body Log** · App · Price: Free

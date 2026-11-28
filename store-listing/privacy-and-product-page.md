@@ -1,7 +1,7 @@
 # Privacy policy and product page record — Simple Body Log
 
 What the privacy policy says, what it was written from, every place it is linked, and the
-product page. Written by `development_readmes/privacy_policy_and_product_page/`. Before changing
+product page. Written by `development_readmes/privacy-policy-and-product-page/`. Before changing
 how the app handles data, read the change map in [README.md](README.md) and section 10 of the skill.
 
 - **Live URL:** https://www.infinityladdertechnologies.com/products/simple-body-log/privacy/

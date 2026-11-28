@@ -1,7 +1,7 @@
 # Screenshots record — Simple Body Log
 
 What the Play screenshots and feature graphic show, what each claims, and how to rebuild them.
-Written by `development_readmes/android_store_screenshots/`. The change map is in
+Written by `development_readmes/android-store-screenshots/`. The change map is in
 [README.md](README.md).
 
 - **Current generation:** `store-listing/screenshots/2026-11-23/` · captured from build 1.0.0 (2)
